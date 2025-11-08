@@ -1,0 +1,31 @@
+{
+  "name": "@lumen-pass/web",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@creit.tech/stellar-wallets-kit": "^1.9.5",
+    "@stellar/stellar-sdk": "^14.2.0",
+    "@tanstack/react-query": "^5.90.2",
+    "date-fns": "^4.1.0",
+    "lucide-react": "^0.446.0",
+    "lumen_pass": "file:../../packages/lumen_pass",
+    "next": "15.5.2",
+    "react": "19.1.1",
+    "react-dom": "19.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "20.16.5",
+    "@types/react": "19.1.0",
+    "@types/react-dom": "19.1.0",
+    "eslint": "9.13.0",
+    "eslint-config-next": "15.5.2",
+    "typescript": "5.5.4"
+  }
+}

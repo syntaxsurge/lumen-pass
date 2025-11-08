@@ -1,0 +1,18 @@
+[package]
+name = "lumen-pass"
+description = "XLM-native memberships with automated fee splits"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+version.workspace = true
+
+[package.metadata.stellar]
+cargo_inherit = true
+
+[lib]
+crate-type = ["cdylib"]
+doctest = false
+
+[dependencies]
+soroban-sdk.workspace = true
