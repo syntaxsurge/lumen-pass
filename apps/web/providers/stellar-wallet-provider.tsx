@@ -5,7 +5,6 @@ import {
   StellarWalletsKit,
   allowAllModules
 } from '@creit.tech/stellar-wallets-kit'
-import type { WalletNetwork } from '@creit.tech/stellar-wallets-kit'
 import {
   createContext,
   useCallback,
@@ -40,11 +39,7 @@ function readSelectedWallet() {
 }
 
 export function StellarWalletProvider({ children }: { children: ReactNode }) {
-  const walletNetwork = (
-    STELLAR_NETWORK_PASSPHRASE.includes('Public Global Stellar Network')
-      ? 'PUBLIC'
-      : 'TESTNET'
-  ) as WalletNetwork
+  const walletNetwork = STELLAR_NETWORK_PASSPHRASE
   const [kit, setKit] = useState<StellarWalletsKit | null>(null)
   const [address, setAddress] = useState<string | null>(null)
   const [status, setStatus] = useState<WalletStatus>('idle')
