@@ -45,7 +45,7 @@ stellar scaffold build --package invoice-registry
 stellar scaffold build --package registrar
 stellar scaffold build --package marketplace
 stellar scaffold build --package split-router
-stellar scaffold build --package nft-enumerable
+stellar scaffold build --package nft-enumerable-example
 
 if [ "$BUILD_CLIENTS" = "true" ]; then
   echo "==> Generating TypeScript clients (development env)"
