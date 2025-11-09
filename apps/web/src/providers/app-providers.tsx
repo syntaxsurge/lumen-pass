@@ -3,7 +3,12 @@
 import { ReactNode, useMemo } from 'react'
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { ThemeProvider } from 'next-themes'
+import { ThemeProvider as NextThemesProvider } from 'next-themes'
+import type { ThemeProviderProps } from 'next-themes'
+
+const ThemeProvider = NextThemesProvider as React.ComponentType<
+  ThemeProviderProps & { children?: ReactNode }
+>
 
 import { ConvexClientProvider } from '@/providers/convex-client-provider'
 import { StellarWalletProvider } from '@/providers/stellar-wallet-provider'

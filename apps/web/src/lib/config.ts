@@ -19,6 +19,22 @@ export function getNativeAssetContractAddress(): string {
   return NATIVE_ASSET_CONTRACT_ID || 'native'
 }
 
+export function getMarketplaceContractAddress(): string {
+  return process.env.NEXT_PUBLIC_MARKETPLACE_CONTRACT_ID?.trim() ?? ''
+}
+
+export function getBadgeContractAddress(): string {
+  return process.env.NEXT_PUBLIC_BADGE_CONTRACT_ID?.trim() ?? ''
+}
+
+export function getRegistrarContractAddress(): string {
+  return process.env.NEXT_PUBLIC_REGISTRAR_CONTRACT_ID?.trim() ?? ''
+}
+
+export function getSplitRouterContractAddress(): string {
+  return process.env.NEXT_PUBLIC_SPLIT_ROUTER_CONTRACT_ID?.trim() ?? ''
+}
+
 export const SUBSCRIPTION_PRICE_USD =
   process.env.NEXT_PUBLIC_SUBSCRIPTION_PRICE_USD ?? '99'
 
