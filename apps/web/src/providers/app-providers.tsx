@@ -3,7 +3,7 @@
 import { ReactNode, useMemo } from 'react'
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import type { ThemeProviderProps } from 'next-themes'
+import { ThemeProvider } from 'next-themes'
 
 import { ConvexClientProvider } from '@/providers/convex-client-provider'
 import { StellarWalletProvider } from '@/providers/stellar-wallet-provider'
@@ -21,9 +21,11 @@ export function AppProviders({ children }: AppProvidersProps) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <StellarWalletProvider>
-        <ConvexClientProvider>{children}</ConvexClientProvider>
-      </StellarWalletProvider>
+      <ThemeProvider attribute='class' defaultTheme='system' enableSystem>
+        <StellarWalletProvider>
+          <ConvexClientProvider>{children}</ConvexClientProvider>
+        </StellarWalletProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   )
 }
