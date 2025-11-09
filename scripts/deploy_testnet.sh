@@ -25,7 +25,7 @@ BADGE_VERSION=${BADGE_VERSION:-0.1.1}
 BUILD_CLIENTS=${BUILD_CLIENTS:-false}
 
 # Optional: path to env file to update with deployed ids
-ENV_FILE=${ENV_FILE:-"$ROOT_DIR/.env"}
+ENV_FILE=${ENV_FILE:-"$ROOT_DIR/apps/web/.env"}
 
 # User-supplied inputs (export before running or pass inline)
 CREATOR_G=${CREATOR_G:-""}         # G... account that owns LumenPass
