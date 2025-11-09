@@ -13,6 +13,7 @@ import { GetXlmSection } from './get-xlm-section'
 const TAB_ITEMS = [
   { value: 'paylinks', label: 'SatsPay Links' },
   { value: 'invoices', label: 'Invoices' },
+  { value: 'payouts', label: 'Payouts' },
   { value: 'goals', label: 'Save Goals' },
   { value: 'get-xlm', label: 'Get XLM' },
   { value: 'status', label: 'Status' }
@@ -90,6 +91,16 @@ export function PaymentsDashboard() {
 
             <TabsContent value='invoices' className='mt-0' forceMount>
               <InvoicesSection />
+            </TabsContent>
+
+            <TabsContent value='payouts' className='mt-0' forceMount>
+              {/* Payouts Section dynamically imported to avoid bundle bloat */}
+              {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+              {/* The actual component is in payouts-section.tsx */}
+              {require('./payouts-section').PayoutsSection ? (
+                // eslint-disable-next-line @typescript-eslint/no-var-requires
+                require('./payouts-section').PayoutsSection()
+              ) : null}
             </TabsContent>
 
             <TabsContent value='goals' className='mt-0' forceMount>

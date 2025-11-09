@@ -14,7 +14,7 @@ pub enum Event {
 fn assert_bps_valid(bps: &Vec<u32>) {
     let mut sum: u32 = 0;
     for v in bps.iter() {
-        sum = sum.checked_add(*v).expect("bps overflow");
+        sum = sum.checked_add(v).expect("bps overflow");
     }
     if sum != 10_000 {
         panic!("recipient shares must sum to 10000 bps")
@@ -80,4 +80,3 @@ impl SplitRouter {
         );
     }
 }
-

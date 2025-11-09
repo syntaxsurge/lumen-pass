@@ -129,6 +129,34 @@ export default defineSchema({
   })
     .index('by_ownerId', ['ownerId'])
     .index('by_slug', ['slug']),
+  payoutSchedules: defineTable({
+    ownerId: v.id('users'),
+    name: v.string(),
+    recipients: v.array(
+      v.object({ address: v.string(), shareBps: v.number(), label: v.optional(v.string()) })
+    ),
+    createdAt: v.number(),
+    updatedAt: v.number()
+  }).index('by_ownerId', ['ownerId']),
+  payoutExecutions: defineTable({
+    scheduleId: v.id('payoutSchedules'),
+    txHash: v.string(),
+    totalAmount: v.string(),
+    executedAt: v.number()
+  })
+    .index('by_scheduleId', ['scheduleId'])
+    .index('by_txHash', ['txHash']),
+  marketplaceListings: defineTable({
+    listingId: v.string(),
+    sellerId: v.id('users'),
+    price: v.string(),
+    active: v.boolean(),
+    lastTxHash: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number()
+  })
+    .index('by_listingId', ['listingId'])
+    .index('by_sellerId', ['sellerId']),
   savingsGoals: defineTable({
     ownerId: v.id('users'),
     name: v.string(),

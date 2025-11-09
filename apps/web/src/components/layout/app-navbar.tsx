@@ -53,6 +53,19 @@ export function AppNavbar() {
               )}
               <span className='relative'>Payments</span>
             </Link>
+            <Link
+              href='/marketplace'
+              className={`group relative rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${
+                pathname?.startsWith('/marketplace')
+                  ? 'text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {pathname?.startsWith('/marketplace') && (
+                <span className='absolute inset-0 rounded-lg bg-gradient-to-r from-primary/10 to-accent/10 ring-1 ring-primary/20' />
+              )}
+              <span className='relative'>Marketplace</span>
+            </Link>
           </nav>
         </div>
 
