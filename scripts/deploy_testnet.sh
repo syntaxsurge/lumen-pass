@@ -19,6 +19,7 @@ REGISTRY_VERSION=${REGISTRY_VERSION:-0.1.0}
 REGISTRAR_VERSION=${REGISTRAR_VERSION:-0.1.0}
 MARKETPLACE_VERSION=${MARKETPLACE_VERSION:-0.1.0}
 SPLIT_VERSION=${SPLIT_VERSION:-0.1.0}
+BADGE_VERSION=${BADGE_VERSION:-0.1.0}
 
 # Optional: generate TS clients after build (development env)
 BUILD_CLIENTS=${BUILD_CLIENTS:-false}
@@ -45,7 +46,7 @@ stellar scaffold build --package invoice-registry
 stellar scaffold build --package registrar
 stellar scaffold build --package marketplace
 stellar scaffold build --package split-router
-stellar scaffold build --package nft-enumerable-example
+stellar scaffold build --package lumenpass-badges
 
 if [ "$BUILD_CLIENTS" = "true" ]; then
   echo "==> Generating TypeScript clients (development env)"
@@ -114,7 +115,7 @@ REGISTRY_WASM="$ROOT_DIR/target/stellar/local/invoice_registry.wasm"
 REGISTRAR_WASM="$ROOT_DIR/target/stellar/local/registrar.wasm"
 MARKET_WASM="$ROOT_DIR/target/stellar/local/marketplace.wasm"
 SPLIT_WASM="$ROOT_DIR/target/stellar/local/split_router.wasm"
-BADGE_WASM="$ROOT_DIR/target/stellar/local/nft_enumerable_example.wasm"
+BADGE_WASM="$ROOT_DIR/target/stellar/local/lumenpass_badges.wasm"
 
 # Publish + deploy (with versions)
 LUMEN_ID=$(publish_deploy "$LUMEN_WASM" lumen-pass "$LUMEN_VERSION")
@@ -122,8 +123,7 @@ REGISTRY_ID=$(publish_deploy "$REGISTRY_WASM" invoice-registry "$REGISTRY_VERSIO
 REGISTRAR_ID=$(publish_deploy "$REGISTRAR_WASM" registrar "$REGISTRAR_VERSION")
 MARKETPLACE_ID=$(publish_deploy "$MARKET_WASM" marketplace "$MARKETPLACE_VERSION")
 SPLIT_ID=$(publish_deploy "$SPLIT_WASM" split-router "$SPLIT_VERSION")
-BADGE_VERSION=${BADGE_VERSION:-0.1.0}
-BADGE_ID=$(publish_deploy "$BADGE_WASM" badge "$BADGE_VERSION")
+BADGE_ID=$(publish_deploy "$BADGE_WASM" lumenpass-badges "$BADGE_VERSION")
 
 echo "==> Initializing contracts"
 # Attempt to derive missing addresses from local key aliases
@@ -153,9 +153,9 @@ echo "-- Marketplace.init"
 stellar contract invoke --id "$MARKETPLACE_ID" --network "$NETWORK" --source "$ACCOUNT_NAME" -- \
   init --platform "$PLATFORM_G" --fee-bps "$FEE_BPS"
 
-echo "-- Badge.__constructor (signed by creator)"
+echo "-- Badges.__constructor (signed by creator)"
 stellar contract invoke --id "$BADGE_ID" --network "$NETWORK" --source creator -- \
-  __constructor --owner "$CREATOR_G"
+  __constructor --owner "$CREATOR_G" --base-uri "https://lumenpass.app/badges" --name "LumenPass Badges" --symbol "LPB"
 
 echo "==> Installation (local CLI aliases)"
 stellar registry install lumen-pass-main || true
@@ -163,7 +163,7 @@ stellar registry install invoice-registry-main || true
 stellar registry install registrar-main || true
 stellar registry install marketplace-main || true
 stellar registry install split-router-main || true
-stellar registry install badge-main || true
+stellar registry install lumenpass-badges-main || true
 
 update_env() {
   local key=$1

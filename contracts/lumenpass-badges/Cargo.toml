@@ -1,5 +1,5 @@
 [package]
-name = "nft-enumerable-example"
+name = "lumenpass-badges"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
@@ -14,6 +14,3 @@ doctest = false
 soroban-sdk = { workspace = true }
 stellar-tokens = { workspace = true }
 stellar-macros = { workspace = true }
-
-[dev-dependencies]
-soroban-sdk = { workspace = true, features = ["testutils"] }
