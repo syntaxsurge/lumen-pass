@@ -34,7 +34,7 @@ pub struct LumenPassBadges;
 
 #[contractimpl]
 impl LumenPassBadges {
-    pub fn __constructor(env: Env, owner: Address, base_uri: String, name: String, symbol: String) {
+    pub fn init(env: Env, owner: Address, base_uri: String, name: String, symbol: String) {
         if env.storage().instance().has(&DataKey::Owner) {
             panic_with_error!(&env, Error::AlreadyInitialized);
         }

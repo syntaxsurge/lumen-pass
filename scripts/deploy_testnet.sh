@@ -19,7 +19,7 @@ REGISTRY_VERSION=${REGISTRY_VERSION:-0.1.0}
 REGISTRAR_VERSION=${REGISTRAR_VERSION:-0.1.0}
 MARKETPLACE_VERSION=${MARKETPLACE_VERSION:-0.1.0}
 SPLIT_VERSION=${SPLIT_VERSION:-0.1.0}
-BADGE_VERSION=${BADGE_VERSION:-0.1.0}
+BADGE_VERSION=${BADGE_VERSION:-0.1.1}
 
 # Optional: generate TS clients after build (development env)
 BUILD_CLIENTS=${BUILD_CLIENTS:-false}
@@ -93,20 +93,36 @@ publish_deploy() {
   local WASM_PATH=$1
   local NAME=$2
   local BINVER=$3
-  echo "==> Publishing $NAME (binver=$BINVER)"
+  local CONTRACT_NAME="${NAME}-main"
+  echo "==> Publishing $NAME (binver=$BINVER)" >&2
   if ! stellar registry publish --wasm "$WASM_PATH" --wasm-name "$NAME" --binver "$BINVER" --source-account "$ACCOUNT_NAME" --network "$NETWORK" >/dev/null 2>&1; then
-    echo "   ↳ publish failed (likely already published); continuing"
+    echo "   ↳ publish failed (likely already published); continuing" >&2
   fi
-  echo "==> Deploying $NAME"
+  echo "==> Deploying $NAME" >&2
   # Capture contract id from deploy output
   local OUT
-  if ! OUT=$(stellar registry deploy --wasm-name "$NAME" --contract-name "$NAME-main" --network "$NETWORK" --source-account "$ACCOUNT_NAME" 2>&1); then
-    echo "$OUT"; exit 1;
+  if ! OUT=$(stellar registry deploy --wasm-name "$NAME" --contract-name "$CONTRACT_NAME" --version "$BINVER" --network "$NETWORK" --source-account "$ACCOUNT_NAME" 2>&1); then
+    if echo "$OUT" | grep -q "Error(Contract, #5)"; then
+      echo "   ↳ contract name already deployed; reusing existing instance" >&2
+    else
+      echo "$OUT" >&2
+      exit 1
+    fi
+  else
+    echo "$OUT" | sed -n '1,120p' >&2
   fi
-  echo "$OUT" | sed -n '1,120p'
+
+  if ! stellar registry create-alias --network "$NETWORK" --source-account "$ACCOUNT_NAME" "$CONTRACT_NAME" >/dev/null 2>&1; then
+    echo "   ↳ alias creation skipped (likely exists)" >&2
+  fi
+
   local ID
-  ID=$(echo "$OUT" | grep -Eo 'C[A-Z0-9]{55}' | tail -1)
-  echo "$NAME Contract ID: $ID"
+  ID=$(stellar contract alias show "$CONTRACT_NAME" | head -n1 | tr -d '\r\n')
+  if [[ -z "$ID" ]]; then
+    echo "Failed to resolve contract id for $CONTRACT_NAME" >&2
+    exit 1
+  fi
+  echo "$CONTRACT_NAME Contract ID: $ID" >&2
   echo "$ID"
 }
 
@@ -153,17 +169,12 @@ echo "-- Marketplace.init"
 stellar contract invoke --id "$MARKETPLACE_ID" --network "$NETWORK" --source "$ACCOUNT_NAME" -- \
   init --platform "$PLATFORM_G" --fee-bps "$FEE_BPS"
 
-echo "-- Badges.__constructor (signed by creator)"
+echo "-- Badges.init (signed by creator)"
 stellar contract invoke --id "$BADGE_ID" --network "$NETWORK" --source creator -- \
-  __constructor --owner "$CREATOR_G" --base-uri "https://lumenpass.app/badges" --name "LumenPass Badges" --symbol "LPB"
+  init --owner "$CREATOR_G" --base-uri "https://lumenpass.app/badges" --name "LumenPass Badges" --symbol "LPB"
 
-echo "==> Installation (local CLI aliases)"
-stellar registry install lumen-pass-main || true
-stellar registry install invoice-registry-main || true
-stellar registry install registrar-main || true
-stellar registry install marketplace-main || true
-stellar registry install split-router-main || true
-stellar registry install lumenpass-badges-main || true
+echo "==> Local aliases registered"
+stellar contract alias ls | sed -n '1,40p'
 
 update_env() {
   local key=$1
