@@ -10,6 +10,19 @@ set -euo pipefail
 ACCOUNT_NAME=${ACCOUNT_NAME:-deploy}
 NETWORK="testnet"
 
+# Crate versions (override via env if needed)
+LUMEN_VERSION=${LUMEN_VERSION:-0.0.1}
+REGISTRY_VERSION=${REGISTRY_VERSION:-0.1.0}
+REGISTRAR_VERSION=${REGISTRAR_VERSION:-0.1.0}
+MARKETPLACE_VERSION=${MARKETPLACE_VERSION:-0.1.0}
+SPLIT_VERSION=${SPLIT_VERSION:-0.1.0}
+
+# Optional: generate TS clients after build (development env)
+BUILD_CLIENTS=${BUILD_CLIENTS:-false}
+
+# Optional: path to env file to update with deployed ids
+ENV_FILE=${ENV_FILE:-"$ROOT_DIR/.env"}
+
 # User-supplied inputs (export before running or pass inline)
 CREATOR_G=${CREATOR_G:-""}         # G... account that owns LumenPass
 PLATFORM_G=${PLATFORM_G:-""}        # Optional G... platform treasury
@@ -32,6 +45,13 @@ stellar scaffold build --package registrar
 stellar scaffold build --package marketplace
 stellar scaffold build --package split-router
 
+if [ "$BUILD_CLIENTS" = "true" ]; then
+  echo "==> Generating TypeScript clients (development env)"
+  stellar scaffold build --package marketplace --build-clients || true
+  stellar scaffold build --package registrar --build-clients || true
+  stellar scaffold build --package split-router --build-clients || true
+fi
+
 echo "==> Ensuring $ACCOUNT_NAME key exists"
 if ! stellar keys address "$ACCOUNT_NAME" >/dev/null 2>&1; then
   stellar keys generate "$ACCOUNT_NAME"
@@ -48,8 +68,8 @@ echo "     SAC: $SAC_ID"
 publish_deploy() {
   local WASM_PATH=$1
   local NAME=$2
-echo "==> Publishing $NAME"
-stellar registry publish --wasm "$WASM_PATH" --wasm-name "$NAME" --source-account "$ACCOUNT_NAME" --network "$NETWORK" >/dev/null
+echo "==> Publishing $NAME (version=$3)"
+stellar registry publish --wasm "$WASM_PATH" --wasm-name "$NAME" --version "$3" --source-account "$ACCOUNT_NAME" --network "$NETWORK" >/dev/null
   echo "==> Deploying $NAME"
   # Capture contract id from deploy output
   local OUT
@@ -69,19 +89,19 @@ REGISTRAR_WASM="$ROOT_DIR/target/stellar/local/registrar.wasm"
 MARKET_WASM="$ROOT_DIR/target/stellar/local/marketplace.wasm"
 SPLIT_WASM="$ROOT_DIR/target/stellar/local/split_router.wasm"
 
-# Publish + deploy
-LUMEN_ID=$(publish_deploy "$LUMEN_WASM" lumen-pass)
-REGISTRY_ID=$(publish_deploy "$REGISTRY_WASM" invoice-registry)
-REGISTRAR_ID=$(publish_deploy "$REGISTRAR_WASM" registrar)
-MARKETPLACE_ID=$(publish_deploy "$MARKET_WASM" marketplace)
-SPLIT_ID=$(publish_deploy "$SPLIT_WASM" split-router)
+# Publish + deploy (with versions)
+LUMEN_ID=$(publish_deploy "$LUMEN_WASM" lumen-pass "$LUMEN_VERSION")
+REGISTRY_ID=$(publish_deploy "$REGISTRY_WASM" invoice-registry "$REGISTRY_VERSION")
+REGISTRAR_ID=$(publish_deploy "$REGISTRAR_WASM" registrar "$REGISTRAR_VERSION")
+MARKETPLACE_ID=$(publish_deploy "$MARKET_WASM" marketplace "$MARKETPLACE_VERSION")
+SPLIT_ID=$(publish_deploy "$SPLIT_WASM" split-router "$SPLIT_VERSION")
 
 echo "==> Initializing contracts"
 if [[ -z "$CREATOR_G" ]]; then echo "Set CREATOR_G=G... and rerun"; exit 1; fi
 if [[ -z "$REGISTRAR_OWNER_G" ]]; then echo "Set REGISTRAR_OWNER_G=G... and rerun"; exit 1; fi
 
-echo "-- LumenPass.init"
-stellar contract invoke --id "$LUMEN_ID" --network "$NETWORK" --source "$ACCOUNT_NAME" -- \
+echo "-- LumenPass.init (signed by creator)"
+stellar contract invoke --id "$LUMEN_ID" --network "$NETWORK" --source creator -- \
   init \
   --creator "$CREATOR_G" \
   --token "$SAC_ID" \
@@ -90,8 +110,8 @@ stellar contract invoke --id "$LUMEN_ID" --network "$NETWORK" --source "$ACCOUNT
   --platform ${PLATFORM_G:-null} \
   --fee-bps "$FEE_BPS"
 
-echo "-- Registrar.init"
-stellar contract invoke --id "$REGISTRAR_ID" --network "$NETWORK" --source "$ACCOUNT_NAME" -- \
+echo "-- Registrar.init (signed by registrar_owner)"
+stellar contract invoke --id "$REGISTRAR_ID" --network "$NETWORK" --source registrar_owner -- \
   init --owner "$REGISTRAR_OWNER_G"
 
 echo "==> Installation (local CLI aliases)"
@@ -100,6 +120,26 @@ stellar registry install invoice-registry-main || true
 stellar registry install registrar-main || true
 stellar registry install marketplace-main || true
 stellar registry install split-router-main || true
+
+update_env() {
+  local key=$1
+  local value=$2
+  local file=$3
+  if [ ! -f "$file" ]; then echo "Creating $file"; touch "$file"; fi
+  if grep -q "^$key=" "$file"; then
+    sed -i.bak "s|^$key=.*|$key=\"$value\"|" "$file"
+  else
+    echo "$key=\"$value\"" >> "$file"
+  fi
+}
+
+echo "==> Updating env file: $ENV_FILE"
+update_env NEXT_PUBLIC_LUMENPASS_CONTRACT_ID "$LUMEN_ID" "$ENV_FILE"
+update_env NEXT_PUBLIC_INVOICE_REGISTRY_CONTRACT_ID "$REGISTRY_ID" "$ENV_FILE"
+update_env NEXT_PUBLIC_REGISTRAR_CONTRACT_ID "$REGISTRAR_ID" "$ENV_FILE"
+update_env NEXT_PUBLIC_MARKETPLACE_CONTRACT_ID "$MARKETPLACE_ID" "$ENV_FILE"
+update_env NEXT_PUBLIC_SPLIT_ROUTER_CONTRACT_ID "$SPLIT_ID" "$ENV_FILE"
+update_env NEXT_PUBLIC_NATIVE_ASSET_CONTRACT_ID "$SAC_ID" "$ENV_FILE"
 
 cat <<EOF
 

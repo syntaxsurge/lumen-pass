@@ -1,6 +1,6 @@
 #![no_std]
 
-use soroban_sdk::{contract, contractevent, contractimpl, contracttype, Address, Env, Vec};
+use soroban_sdk::{contract, contractevent, contractimpl, Address, Env, Vec};
 
 #[contract]
 pub struct SplitRouter;
