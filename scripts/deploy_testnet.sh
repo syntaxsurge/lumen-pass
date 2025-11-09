@@ -71,8 +71,11 @@ echo "     SAC: $SAC_ID"
 publish_deploy() {
   local WASM_PATH=$1
   local NAME=$2
-echo "==> Publishing $NAME (binver=$3)"
-stellar registry publish --wasm "$WASM_PATH" --wasm-name "$NAME" --binver "$3" --source-account "$ACCOUNT_NAME" --network "$NETWORK" >/dev/null
+  local BINVER=$3
+  echo "==> Publishing $NAME (binver=$BINVER)"
+  if ! stellar registry publish --wasm "$WASM_PATH" --wasm-name "$NAME" --binver "$BINVER" --source-account "$ACCOUNT_NAME" --network "$NETWORK" >/dev/null 2>&1; then
+    echo "   ↳ publish failed (likely already published); continuing"
+  fi
   echo "==> Deploying $NAME"
   # Capture contract id from deploy output
   local OUT
