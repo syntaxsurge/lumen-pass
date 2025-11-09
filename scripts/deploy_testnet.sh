@@ -7,6 +7,9 @@ set -euo pipefail
 #  - stellar-registry CLI (cargo install --locked stellar-registry-cli)
 #  - curl (for friendbot)
 
+# Resolve repo root early so we can safely reference it in defaults
+ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+
 ACCOUNT_NAME=${ACCOUNT_NAME:-deploy}
 NETWORK="testnet"
 
