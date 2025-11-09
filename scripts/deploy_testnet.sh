@@ -99,6 +99,7 @@ SPLIT_ID=$(publish_deploy "$SPLIT_WASM" split-router "$SPLIT_VERSION")
 echo "==> Initializing contracts"
 if [[ -z "$CREATOR_G" ]]; then echo "Set CREATOR_G=G... and rerun"; exit 1; fi
 if [[ -z "$REGISTRAR_OWNER_G" ]]; then echo "Set REGISTRAR_OWNER_G=G... and rerun"; exit 1; fi
+if [[ -z "${PLATFORM_G:-}" ]]; then echo "Set PLATFORM_G=G... (platform treasury) and rerun"; exit 1; fi
 
 echo "-- LumenPass.init (signed by creator)"
 stellar contract invoke --id "$LUMEN_ID" --network "$NETWORK" --source creator -- \
@@ -107,12 +108,16 @@ stellar contract invoke --id "$LUMEN_ID" --network "$NETWORK" --source creator -
   --token "$SAC_ID" \
   --price "$PRICE_STROOPS" \
   --duration-ledgers "$DURATION_LEDGERS" \
-  --platform ${PLATFORM_G:-null} \
+  --platform "$PLATFORM_G" \
   --fee-bps "$FEE_BPS"
 
 echo "-- Registrar.init (signed by registrar_owner)"
 stellar contract invoke --id "$REGISTRAR_ID" --network "$NETWORK" --source registrar_owner -- \
   init --owner "$REGISTRAR_OWNER_G"
+
+echo "-- Marketplace.init"
+stellar contract invoke --id "$MARKETPLACE_ID" --network "$NETWORK" --source "$ACCOUNT_NAME" -- \
+  init --platform "$PLATFORM_G" --fee-bps "$FEE_BPS"
 
 echo "==> Installation (local CLI aliases)"
 stellar registry install lumen-pass-main || true

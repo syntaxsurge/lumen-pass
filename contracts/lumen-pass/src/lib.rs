@@ -31,7 +31,7 @@ pub struct Config {
     pub token: Address,
     pub price: i128,
     pub duration_ledgers: u32,
-    pub platform: Option<Address>,
+    pub platform: Address,
     pub fee_bps: u32,
 }
 
@@ -58,7 +58,7 @@ impl LumenPass {
         token: Address,
         price: i128,
         duration_ledgers: u32,
-        platform: Option<Address>,
+        platform: Address,
         fee_bps: u32,
     ) {
         if env.storage().persistent().has(&DataKey::Creator) {
@@ -85,9 +85,7 @@ impl LumenPass {
         store.set(&DataKey::Price, &price);
         store.set(&DataKey::Duration, &duration_ledgers);
         store.set(&DataKey::FeeBps, &fee_bps);
-        if let Some(address) = platform {
-            store.set(&DataKey::Platform, &address);
-        }
+        store.set(&DataKey::Platform, &platform);
     }
 
     pub fn subscribe(env: Env, user: Address) -> u32 {
@@ -116,7 +114,11 @@ impl LumenPass {
             .persistent()
             .get(&DataKey::FeeBps)
             .expect("fee missing");
-        let platform: Option<Address> = env.storage().persistent().get(&DataKey::Platform);
+        let platform: Address = env
+            .storage()
+            .persistent()
+            .get(&DataKey::Platform)
+            .expect("platform missing");
 
         user.require_auth();
 
@@ -125,17 +127,13 @@ impl LumenPass {
         } else {
             price * (fee_bps as i128) / 10_000
         };
-        let platform_share = if fee > 0 && platform.is_some() {
-            fee
-        } else {
-            0
-        };
+        let platform_share = if fee > 0 { fee } else { 0 };
         let to_creator = price - platform_share;
 
         let sac = TokenClient::new(&env, &token);
         sac.transfer(&user, &creator, &to_creator);
         if platform_share > 0 {
-            sac.transfer(&user, platform.as_ref().unwrap(), &platform_share);
+            sac.transfer(&user, &platform, &platform_share);
         }
 
         let key = DataKey::Expiry(user.clone());
@@ -199,7 +197,11 @@ impl LumenPass {
                 .persistent()
                 .get(&DataKey::Duration)
                 .expect("duration missing"),
-            platform: env.storage().persistent().get(&DataKey::Platform),
+            platform: env
+                .storage()
+                .persistent()
+                .get(&DataKey::Platform)
+                .expect("platform missing"),
             fee_bps: env
                 .storage()
                 .persistent()

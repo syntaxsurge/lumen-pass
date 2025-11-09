@@ -6,6 +6,9 @@ use soroban_sdk::{contract, contractevent, contractimpl, contracttype, Address, 
 #[contracttype]
 pub enum DataKey {
     Listing(u128),
+    Platform,
+    FeeBps,
+    Initialized,
 }
 
 #[derive(Clone)]
@@ -44,6 +47,17 @@ pub struct BoughtEvent {
 
 #[contractimpl]
 impl Marketplace {
+    pub fn init(env: Env, platform: Address, fee_bps: u32) {
+        if env.storage().persistent().has(&DataKey::Initialized) {
+            panic!("already initialized");
+        }
+        if fee_bps > 10_000 {
+            panic!("fee too high");
+        }
+        env.storage().persistent().set(&DataKey::Platform, &platform);
+        env.storage().persistent().set(&DataKey::FeeBps, &fee_bps);
+        env.storage().persistent().set(&DataKey::Initialized, &true);
+    }
     pub fn list(env: Env, id: u128, seller: Address, price: i128) {
         if price <= 0 {
             panic!("price must be positive");
@@ -91,7 +105,22 @@ impl Marketplace {
         }
 
         let sac = soroban_sdk::token::TokenClient::new(&env, &token);
-        sac.transfer(&buyer, &listing.seller, &listing.price);
+        let fee_bps: u32 = env
+            .storage()
+            .persistent()
+            .get(&DataKey::FeeBps)
+            .expect("fee missing");
+        let platform: Address = env
+            .storage()
+            .persistent()
+            .get(&DataKey::Platform)
+            .expect("platform missing");
+        let fee: i128 = listing.price * (fee_bps as i128) / 10_000;
+        let to_seller = listing.price - fee;
+        if fee > 0 {
+            sac.transfer(&buyer, &platform, &fee);
+        }
+        sac.transfer(&buyer, &listing.seller, &to_seller);
 
         listing.active = false;
         let price = listing.price;
