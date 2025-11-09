@@ -71,8 +71,8 @@ echo "     SAC: $SAC_ID"
 publish_deploy() {
   local WASM_PATH=$1
   local NAME=$2
-echo "==> Publishing $NAME (version=$3)"
-stellar registry publish --wasm "$WASM_PATH" --wasm-name "$NAME" --version "$3" --source-account "$ACCOUNT_NAME" --network "$NETWORK" >/dev/null
+echo "==> Publishing $NAME (binver=$3)"
+stellar registry publish --wasm "$WASM_PATH" --wasm-name "$NAME" --binver "$3" --source-account "$ACCOUNT_NAME" --network "$NETWORK" >/dev/null
   echo "==> Deploying $NAME"
   # Capture contract id from deploy output
   local OUT
