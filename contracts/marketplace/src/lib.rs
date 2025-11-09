@@ -1,6 +1,6 @@
 #![no_std]
 
-use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, Symbol};
+use soroban_sdk::{contract, contractevent, contractimpl, contracttype, Address, Env};
 
 #[derive(Clone)]
 #[contracttype]
@@ -19,6 +19,29 @@ pub struct Listing {
 #[contract]
 pub struct Marketplace;
 
+#[derive(Clone)]
+#[contractevent]
+pub struct ListedEvent {
+    pub id: u128,
+    pub seller: Address,
+    pub price: i128,
+}
+
+#[derive(Clone)]
+#[contractevent]
+pub struct CanceledEvent {
+    pub id: u128,
+    pub seller: Address,
+}
+
+#[derive(Clone)]
+#[contractevent]
+pub struct BoughtEvent {
+    pub id: u128,
+    pub buyer: Address,
+    pub price: i128,
+}
+
 #[contractimpl]
 impl Marketplace {
     pub fn list(env: Env, id: u128, seller: Address, price: i128) {
@@ -35,7 +58,7 @@ impl Marketplace {
         }
         let listing = Listing { seller: seller.clone(), price, active: true };
         env.storage().persistent().set(&key, &listing);
-        env.events().publish((Symbol::new(&env, "list"), id), (seller, price));
+        ListedEvent { id, seller, price }.publish(&env);
     }
 
     pub fn cancel(env: Env, id: u128, seller: Address) {
@@ -51,7 +74,7 @@ impl Marketplace {
         }
         listing.active = false;
         env.storage().persistent().set(&key, &listing);
-        env.events().publish((Symbol::new(&env, "cancel"), id), seller);
+        CanceledEvent { id, seller }.publish(&env);
     }
 
     /// Buyer purchases a listing with native/issued token via SAC.
@@ -71,13 +94,12 @@ impl Marketplace {
         sac.transfer(&buyer, &listing.seller, &listing.price);
 
         listing.active = false;
+        let price = listing.price;
         env.storage().persistent().set(&key, &listing);
-        env.events()
-            .publish((Symbol::new(&env, "buy"), id), (buyer, listing.price));
+        BoughtEvent { id, buyer, price }.publish(&env);
     }
 
     pub fn get(env: Env, id: u128) -> Option<Listing> {
         env.storage().persistent().get(&DataKey::Listing(id))
     }
 }
-

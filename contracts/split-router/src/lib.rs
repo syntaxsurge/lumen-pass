@@ -1,14 +1,15 @@
 #![no_std]
 
-use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, Symbol, Vec};
+use soroban_sdk::{contract, contractevent, contractimpl, contracttype, Address, Env, Vec};
 
 #[contract]
 pub struct SplitRouter;
 
 #[derive(Clone)]
-#[contracttype]
-pub enum Event {
-    SplitExecuted,
+#[contractevent]
+pub struct SplitExecutedEvent {
+    pub payer: Address,
+    pub amount: i128,
 }
 
 fn assert_bps_valid(bps: &Vec<u32>) {
@@ -74,9 +75,6 @@ impl SplitRouter {
             }
         }
 
-        env.events().publish(
-            (Symbol::new(&env, "split"), Event::SplitExecuted),
-            (payer, amount),
-        );
+        SplitExecutedEvent { payer, amount }.publish(&env);
     }
 }
