@@ -1,6 +1,8 @@
 #![no_std]
 
-use soroban_sdk::{contract, contracterror, contractimpl, contracttype, panic_with_error, Address, Env, Symbol};
+use soroban_sdk::{
+    contract, contracterror, contractimpl, contracttype, panic_with_error, Address, Env, String,
+};
 
 #[contracterror]
 pub enum Error {
@@ -24,7 +26,7 @@ pub struct Invoice {
     pub payer: Option<Address>,
     pub amount: i128,
     pub paid: bool,
-    pub reference: Option<Symbol>,
+    pub reference: Option<String>,
 }
 
 #[contract]
@@ -43,7 +45,7 @@ impl InvoiceRegistry {
         issuer: Address,
         payer: Option<Address>,
         amount: i128,
-        reference: Option<Symbol>,
+        reference: Option<String>,
     ) -> u64 {
         issuer.require_auth();
 
