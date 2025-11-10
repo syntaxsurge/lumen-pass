@@ -38,6 +38,8 @@ import { generateMembershipCourseId } from '@/features/groups/utils/membership'
 import { useAppRouter } from '@/hooks/use-app-router'
 import { usePlatformFeeQuote } from '@/hooks/use-platform-fee-quote'
 import { useStellarWallet } from '@/hooks/use-stellar-wallet'
+import { getPlatformTreasuryAddress } from '@/lib/config'
+import { submitNativePaymentViaWallet } from '@/lib/stellar/paylink-service'
 
 const createGroupSchema = z
   .object({
@@ -126,9 +128,15 @@ const DEFAULT_VALUES: CreateGroupFormValues = {
 export default function Create() {
   const router = useAppRouter()
   const wallet = useStellarWallet()
+  const platformTreasuryAddress = useMemo(
+    () => getPlatformTreasuryAddress(),
+    []
+  )
   const {
+    quote: platformFeeQuote,
     usdLabel: platformFeeUsdLabel,
-    settlementLabel: platformFeeSettlementLabel
+    settlementLabel: platformFeeSettlementLabel,
+    refresh: refreshPlatformFee
   } = usePlatformFeeQuote({ autoFetch: true })
   const createGroup = useMutation(api.groups.create)
   const generateUploadUrl = useMutation(api.media.generateUploadUrl)
@@ -172,6 +180,39 @@ export default function Create() {
 
       setIsSubmitting(true)
       try {
+        const feeQuote =
+          platformFeeQuote ?? (await refreshPlatformFee().catch(() => null))
+        if (!feeQuote || feeQuote.amount <= 0n) {
+          throw new Error(
+            'Unable to resolve the platform fee quote. Please try again.'
+          )
+        }
+
+        if (!platformTreasuryAddress) {
+          throw new Error('Platform treasury address is not configured.')
+        }
+
+        if (!wallet.signTransaction) {
+          throw new Error(
+            'Connected wallet cannot sign transactions. Reconnect your wallet.'
+          )
+        }
+
+        const feeMemo = `GROUP-${values.name.trim().slice(0, 18)}`.replace(
+          /[^ -~]/g,
+          ''
+        )
+
+        const feeTxHash = await submitNativePaymentViaWallet({
+          publicKey: wallet.address,
+          destination: platformTreasuryAddress,
+          amount: feeQuote.amount,
+          memo: feeMemo || undefined,
+          signTransaction: wallet.signTransaction
+        })
+
+        toast.success('Platform fee paid', { description: feeTxHash })
+
         const priceNumeric =
           values.billingCadence === 'monthly'
             ? Number(values.price ?? 0)
@@ -209,7 +250,7 @@ export default function Create() {
             formattedPrice > 0 ? 'monthly' : values.billingCadence,
           price: formattedPrice,
           subscriptionId,
-          subscriptionPaymentTxHash: undefined
+          subscriptionPaymentTxHash: feeTxHash
         } as any)
 
         toast.success('Your group is live!')
@@ -225,7 +266,14 @@ export default function Create() {
         setIsSubmitting(false)
       }
     },
-    [createGroup, router, wallet]
+    [
+      createGroup,
+      platformFeeQuote,
+      platformTreasuryAddress,
+      refreshPlatformFee,
+      router,
+      wallet
+    ]
   )
 
   const onSubmit = form.handleSubmit(values => handleSubmit(values))
@@ -339,6 +387,27 @@ export default function Create() {
                           {...field}
                         />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name='aboutUrl'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Introduction video URL</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder='https://www.youtube.com/watch?v=...'
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Optional. Shown on your group about page as an embedded
+                        video.
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}

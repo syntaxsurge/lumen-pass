@@ -35,6 +35,10 @@ export function getSplitRouterContractAddress(): string {
   return process.env.NEXT_PUBLIC_SPLIT_ROUTER_CONTRACT_ID?.trim() ?? ''
 }
 
+export function getPlatformTreasuryAddress(): string {
+  return process.env.NEXT_PUBLIC_PLATFORM_TREASURY_ADDRESS?.trim() ?? ''
+}
+
 export const SUBSCRIPTION_PRICE_USD =
   process.env.NEXT_PUBLIC_SUBSCRIPTION_PRICE_USD ?? '99'
 

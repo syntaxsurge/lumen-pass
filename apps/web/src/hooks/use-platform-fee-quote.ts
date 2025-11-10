@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { SUBSCRIPTION_PRICE_USD } from '@/lib/config'
+import { getCoingeckoUsdPrice } from '@/lib/pricing/coingecko'
 import { formatSettlementToken } from '@/lib/settlement-token'
 import { getPrice as getLumenPassPrice } from '@/lib/stellar/lumen-pass-service'
 
@@ -31,11 +32,35 @@ function formatSubscriptionUsdLabel() {
 }
 
 async function fetchPlatformQuote(): Promise<PlatformFeeQuote> {
-  const rawPrice = await getLumenPassPrice()
-  const amount = typeof rawPrice === 'bigint' ? rawPrice : BigInt(rawPrice ?? 0)
+  const usdTarget = Number(SUBSCRIPTION_PRICE_USD)
+  let amount: bigint | null = null
+
+  if (Number.isFinite(usdTarget) && usdTarget > 0) {
+    try {
+      const xlmUsd = await getCoingeckoUsdPrice('stellar')
+      if (xlmUsd && xlmUsd > 0) {
+        const lumens = usdTarget / xlmUsd
+        const stroops = BigInt(Math.round(lumens * 10 ** 7))
+        if (stroops > 0n) {
+          amount = stroops
+        }
+      }
+    } catch (error) {
+      console.warn('[platform-fee] coingecko lookup failed', error)
+    }
+  }
+
+  if (!amount) {
+    const fallback = await getLumenPassPrice()
+    if (typeof fallback === 'bigint' && fallback > 0n) {
+      amount = fallback
+    }
+  }
+
+  const resolved = amount ?? 0n
   return {
-    amount,
-    displayAmount: formatSettlementToken(amount, {
+    amount: resolved,
+    displayAmount: formatSettlementToken(resolved, {
       maximumFractionDigits: 2,
       minimumFractionDigits: 0
     })
