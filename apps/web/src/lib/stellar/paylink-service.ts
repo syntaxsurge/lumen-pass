@@ -1,20 +1,19 @@
+'use client'
+
 import {
   Asset,
+  Horizon,
   Memo,
   Operation,
-  Server,
   TransactionBuilder
 } from '@stellar/stellar-sdk'
 
 import {
-  SETTLEMENT_TOKEN_DECIMALS,
   STELLAR_HORIZON_URL,
   STELLAR_NETWORK_PASSPHRASE
 } from '@/lib/stellar/config'
+import { SETTLEMENT_TOKEN_DECIMALS } from '@/lib/config'
 import type { StellarSigner } from '@/lib/stellar/lumen-pass-service'
-
-const allowHttp = STELLAR_HORIZON_URL.startsWith('http://')
-const horizonServer = new Server(STELLAR_HORIZON_URL, { allowHttp })
 
 const DECIMAL_FACTOR = 10n ** BigInt(SETTLEMENT_TOKEN_DECIMALS)
 
@@ -52,8 +51,11 @@ export async function submitNativePaymentViaWallet({
     throw new Error('Amount must be positive.')
   }
 
-  const account = await horizonServer.loadAccount(publicKey)
-  const baseFee = await horizonServer.fetchBaseFee()
+  const server = new Horizon.Server(STELLAR_HORIZON_URL, {
+    allowHttp: STELLAR_HORIZON_URL.startsWith('http://')
+  })
+  const account = await server.loadAccount(publicKey)
+  const baseFee = await server.fetchBaseFee()
   let builder = new TransactionBuilder(account, {
     fee: (Number(baseFee) * 2).toString(),
     networkPassphrase: STELLAR_NETWORK_PASSPHRASE
@@ -71,11 +73,6 @@ export async function submitNativePaymentViaWallet({
 
   const tx = builder.setTimeout(180).build()
   const signedXdr = await signTransaction(tx.toXDR())
-  const signed = TransactionBuilder.fromXDR(
-    signedXdr,
-    STELLAR_NETWORK_PASSPHRASE
-  )
-  const resp = await horizonServer.submitTransaction(signed)
+  const resp = await server.submitTransactionXDR(signedXdr)
   return resp.hash
 }
-
