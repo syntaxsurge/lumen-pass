@@ -15,7 +15,12 @@ const inter = Inter({ subsets: ['latin'], preload: false })
 
 export const metadata: Metadata = {
   title: 'LumenPass',
-  description: 'Stellar-native memberships, payments, and payouts.'
+  description: 'Stellar-native memberships, payments, and payouts.',
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+    apple: '/favicon.ico'
+  }
 }
 
 export default function RootLayout({

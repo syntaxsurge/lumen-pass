@@ -2,7 +2,17 @@
 
 import { useEffect, useMemo, useState } from 'react'
 
-import { useQuery } from 'convex/react'
+import { useMutation, useQuery } from 'convex/react'
+import {
+  ArrowUpRight,
+  AtSign,
+  Calendar,
+  CheckCircle2,
+  FileText,
+  User,
+  Wallet as WalletIcon
+} from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Badge } from '@/components/ui/badge'
@@ -17,6 +27,7 @@ import {
   formatSettlementToken
 } from '@/lib/settlement-token'
 import { formatStroopsAsDecimal } from '@/lib/stellar/paylink-service'
+import { getTransactionUrl } from '@/lib/stellar/explorer'
 import { STELLAR_NETWORK_PASSPHRASE } from '@/lib/stellar/config'
 import { SETTLEMENT_TOKEN_SYMBOL } from '@/lib/config'
 import { formatTimestampRelative } from '@/lib/time'
@@ -25,6 +36,18 @@ type PayPageClientProps = {
   handle: string
   invoiceSlug?: string
   expectedAmount?: string
+}
+
+type PaidDetailItem = {
+  label: string
+  value: string
+  icon: LucideIcon
+  title?: string
+}
+
+function truncateAddress(value: string, front = 6, back = 4) {
+  if (value.length <= front + back + 1) return value
+  return `${value.slice(0, front)}…${value.slice(-back)}`
 }
 
 function formatInvoiceStatus(invoice: Doc<'invoices'> | null | undefined) {
@@ -50,6 +73,11 @@ export function PayPageClient({
     api.invoices.getBySlug,
     invoiceSlug ? { slug: invoiceSlug } : 'skip'
   )
+  const invoiceOwner = useQuery(
+    api.users.getById,
+    invoice ? { userId: invoice.ownerId } : 'skip'
+  )
+  const markPaid = useMutation(api.invoices.markPaid)
 
   const amountLabel = useMemo(() => {
     if (invoice) return formatSettlementToken(BigInt(invoice.totalAmount))
@@ -76,6 +104,55 @@ export function PayPageClient({
   const [amountInput, setAmountInput] = useState(derivedDefaultAmount)
   const [sending, setSending] = useState(false)
 
+  const paidAtFormatted = useMemo(() => {
+    if (!invoice?.paidAt) return null
+    return formatTimestampRelative(invoice.paidAt)
+  }, [invoice?.paidAt])
+
+  const dueDateFormatted = useMemo(() => {
+    if (!invoice?.dueAt) return null
+    return formatTimestampRelative(invoice.dueAt)
+  }, [invoice?.dueAt])
+
+  const amountPaidDisplay = useMemo(() => {
+    if (!invoice) return null
+    return formatSettlementToken(BigInt(invoice.totalAmount))
+  }, [invoice])
+
+  const paymentExplorerUrl = useMemo(() => {
+    if (!invoice?.paymentTxHash) return null
+    return getTransactionUrl(invoice.paymentTxHash)
+  }, [invoice?.paymentTxHash])
+
+  const paidDetailItems = useMemo<PaidDetailItem[]>(() => {
+    if (!invoice) return []
+    const items: PaidDetailItem[] = []
+    if (invoice.number) {
+      items.push({ label: 'Invoice number', value: invoice.number, icon: FileText })
+    }
+    if (paidAtFormatted) {
+      items.push({ label: 'Paid', value: paidAtFormatted, icon: Calendar })
+    }
+    if (dueDateFormatted) {
+      items.push({ label: 'Due date', value: dueDateFormatted, icon: Calendar })
+    }
+    if (paylink) {
+      items.push({ label: 'Pay handle', value: `@${paylink.handle}`, icon: AtSign })
+    }
+    if (invoice.customerName) {
+      items.push({ label: 'Billed to', value: invoice.customerName, icon: User })
+    }
+    if (invoice.payerAddress) {
+      items.push({
+        label: 'Payer wallet',
+        value: truncateAddress(invoice.payerAddress),
+        title: invoice.payerAddress,
+        icon: WalletIcon
+      })
+    }
+    return items
+  }, [dueDateFormatted, invoice, paidAtFormatted, paylink])
+
   useEffect(() => {
     if (derivedDefaultAmount) {
       setAmountInput(derivedDefaultAmount)
@@ -94,6 +171,113 @@ export function PayPageClient({
     return (
       <div className='rounded-2xl border border-dashed border-border/70 bg-muted/10 p-10 text-center text-sm text-muted-foreground'>
         This pay handle is unavailable. Double-check the link and try again.
+      </div>
+    )
+  }
+
+  if (invoice && invoice.status === 'paid') {
+    const paidHeroTitle =
+      invoice.title ?? paylink.title ?? 'Invoice payment confirmed'
+
+    return (
+      <div className='space-y-6 rounded-3xl border border-border/70 bg-card/80 p-8 shadow-lg'>
+        <div className='flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between'>
+          <div>
+            <p className='text-sm font-medium text-muted-foreground'>
+              Payment for @{paylink.handle}
+            </p>
+            <h1 className='text-3xl font-semibold text-foreground'>
+              {paidHeroTitle}
+            </h1>
+            {paylink.description ? (
+              <p className='text-sm text-muted-foreground'>{paylink.description}</p>
+            ) : null}
+          </div>
+          <Badge variant='secondary'>Paid</Badge>
+        </div>
+
+        <div className='rounded-3xl border border-border/70 bg-background/70 p-6'>
+          <div className='relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-primary/5 to-accent/10 p-6'>
+            <div className='pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-accent/20 opacity-70 blur-3xl' />
+            <div className='relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between'>
+              <div className='flex items-center gap-3'>
+                <span className='flex h-12 w-12 items-center justify-center rounded-full bg-primary/15 text-primary'>
+                  <CheckCircle2 className='h-6 w-6' />
+                </span>
+                <div>
+                  <p className='text-xs font-semibold uppercase tracking-widest text-primary'>
+                    Payment complete
+                  </p>
+                  <h2 className='text-xl font-semibold text-foreground'>
+                    {invoice.number ? `Invoice #${invoice.number}` : 'Receipt ready'}
+                  </h2>
+                </div>
+              </div>
+              {amountPaidDisplay ? (
+                <Badge variant='outline' className='text-base font-semibold'>
+                  {amountPaidDisplay}
+                </Badge>
+              ) : null}
+            </div>
+            {paidAtFormatted ? (
+              <p className='relative mt-4 text-sm text-muted-foreground'>
+                Paid {paidAtFormatted}
+              </p>
+            ) : null}
+          </div>
+
+          {paidDetailItems.length > 0 ? (
+            <div className='mt-6 grid gap-4 md:grid-cols-2'>
+              {paidDetailItems.map(item => {
+                const Icon = item.icon
+                return (
+                  <div
+                    key={item.label}
+                    className='flex items-start gap-3 rounded-2xl border border-border/60 bg-card/80 p-4'
+                  >
+                    <span className='mt-1 flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary'>
+                      <Icon className='h-4 w-4' />
+                    </span>
+                    <div>
+                      <p className='text-xs uppercase tracking-wide text-muted-foreground'>
+                        {item.label}
+                      </p>
+                      <p
+                        className='mt-1 text-sm font-medium text-foreground'
+                        title={item.title ?? item.value}
+                      >
+                        {item.value}
+                      </p>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          ) : null}
+
+          {invoice.notes ? (
+            <div className='mt-6 rounded-2xl border border-border/60 bg-card/80 p-4'>
+              <p className='text-xs uppercase tracking-wide text-muted-foreground'>
+                Notes
+              </p>
+              <p className='mt-2 text-sm leading-relaxed text-foreground'>
+                {invoice.notes}
+              </p>
+            </div>
+          ) : null}
+
+          {paymentExplorerUrl ? (
+            <a
+              href={paymentExplorerUrl}
+              target='_blank'
+              rel='noreferrer'
+              className='mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary underline-offset-4 hover:underline'
+            >
+              View transaction on Horizon
+              <ArrowUpRight className='h-4 w-4' />
+            </a>
+          ) : null}
+        </div>
       </div>
     )
   }
@@ -153,6 +337,41 @@ export function PayPageClient({
         toast.success('Payment submitted on Stellar.', {
           description: txHash
         })
+
+        if (invoice && invoiceSlug && invoiceOwner?.walletAddress) {
+          try {
+            const { verifyNativePayment } = await import(
+              '@/lib/stellar/verify-payment'
+            )
+            const verification = await verifyNativePayment({
+              hash: txHash,
+              to: paylink.receivingAddress,
+              from: wallet.address,
+              amountStroops: BigInt(invoice.totalAmount),
+              memoText: normalizeMemo() ?? null
+            })
+
+            if (verification.ok) {
+              await markPaid({
+                ownerAddress: invoiceOwner.walletAddress,
+                slug: invoiceSlug,
+                paymentTxHash: txHash,
+                paidAt: Date.now()
+              })
+              toast.success(`Invoice ${invoice.number} marked as paid`)
+            } else {
+              console.warn('[verifyNativePayment]', verification)
+              toast.warning(
+                'Payment detected. Creator dashboard will sync shortly.'
+              )
+            }
+          } catch (error) {
+            console.error('[verifyNativePayment] failed', error)
+            toast.warning(
+              'Payment submitted. Refresh later once the creator confirms.'
+            )
+          }
+        }
       } else {
         // Fallback to SEP-7 if no signer function is available
         const amountDecimal = formatStroopsAsDecimal(amountStroops)

@@ -18,21 +18,32 @@ export function AppNavbar() {
       {/* Subtle gradient overlay */}
       <div className='pointer-events-none absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-accent/5' />
 
-      <div className='relative mx-auto flex h-20 w-full items-center justify-between gap-6 px-8'>
-        <div className='flex items-center gap-8'>
+      <div className='relative mx-auto flex h-20 w-full items-center justify-between gap-4 px-4 sm:gap-6 sm:px-8'>
+        <div className='flex items-center gap-4 sm:gap-8'>
           <Link
             href='/'
-            className='group relative hidden items-center transition-transform hover:scale-105 sm:flex'
+            aria-label='LumenPass home'
+            className='group relative flex items-center gap-3 rounded-2xl border border-border/40 bg-card/80 px-3 py-2 text-left shadow-sm transition-all hover:border-primary/50 hover:bg-card/90 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40'
           >
-            <Image
-              src='/images/lumenpass-logo.png'
-              alt='LumenPass'
-              width={292}
-              height={293}
-              priority
-              className='h-12 w-auto drop-shadow-sm transition-all group-hover:drop-shadow-md'
-            />
-            <span className='sr-only'>LumenPass</span>
+            <div className='relative h-10 w-10 shrink-0 overflow-hidden rounded-full border border-border/60 bg-background/80 p-1.5 shadow-inner transition group-hover:border-primary/50 sm:h-12 sm:w-12'>
+              <Image
+                src='/images/lumenpass-logo.png'
+                alt='LumenPass logo'
+                width={292}
+                height={293}
+                priority
+                sizes='(max-width: 640px) 40px, 48px'
+                className='h-full w-full object-contain drop-shadow-sm transition group-hover:drop-shadow-lg'
+              />
+            </div>
+            <div className='flex flex-col leading-tight'>
+              <span className='text-sm font-semibold tracking-tight text-foreground sm:text-base'>
+                LumenPass
+              </span>
+              <span className='text-[10px] font-medium uppercase text-muted-foreground sm:text-xs'>
+                Stellar Commerce
+              </span>
+            </div>
           </Link>
 
           <div className='h-8 w-px bg-gradient-to-b from-transparent via-border to-transparent' />

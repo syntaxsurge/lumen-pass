@@ -22,10 +22,24 @@ export function formatStroopsAsDecimal(amount: bigint): string {
   const abs = amount < 0n ? -amount : amount
   const whole = abs / DECIMAL_FACTOR
   const fraction = abs % DECIMAL_FACTOR
-  let fractionStr = fraction.toString().padStart(SETTLEMENT_TOKEN_DECIMALS, '0')
-  fractionStr = fractionStr.replace(/0+$/, '')
-  const decimal = fractionStr ? `${whole}.${fractionStr}` : `${whole}`
-  return `${sign}${decimal}`
+  const fractionStr = fraction.toString().padStart(SETTLEMENT_TOKEN_DECIMALS, '0')
+  if (fraction === 0n) {
+    return `${sign}${whole}.0000000`
+  }
+  const trimmed = fractionStr.replace(/0+$/, '')
+  return `${sign}${whole}.${trimmed}`
+}
+
+export function stroopsFromAmountString(value: string): bigint {
+  const [wholePart, fractionPart = ''] = value.split('.')
+  const sanitizedWhole = wholePart.trim() || '0'
+  const paddedFraction = (fractionPart + '0'.repeat(SETTLEMENT_TOKEN_DECIMALS)).slice(
+    0,
+    SETTLEMENT_TOKEN_DECIMALS
+  )
+  return (
+    BigInt(sanitizedWhole) * DECIMAL_FACTOR + BigInt(paddedFraction || '0')
+  )
 }
 
 type PaylinkPaymentParams = {
