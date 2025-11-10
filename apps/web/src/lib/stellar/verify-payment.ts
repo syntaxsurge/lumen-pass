@@ -13,12 +13,25 @@ function delay(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
-async function waitForTransaction(hash: string, timeoutMs = 20000) {
+type MinimalTransactionRecord = {
+  successful?: boolean
+  memo_type?: string
+  memo?: string | null
+  closed_at?: string
+}
+
+async function waitForTransaction(
+  hash: string,
+  timeoutMs = 20000
+): Promise<MinimalTransactionRecord> {
   const started = Date.now()
   while (Date.now() - started < timeoutMs) {
     try {
-      const tx = await horizonServer.transactions().transaction(hash).call()
-      if ((tx as any).successful === true) {
+      const tx = (await horizonServer
+        .transactions()
+        .transaction(hash)
+        .call()) as MinimalTransactionRecord
+      if (tx.successful === true) {
         return tx
       }
     } catch (error) {
@@ -46,14 +59,16 @@ export async function verifyNativePayment(params: {
     }
   }
 
-  const ops = await horizonServer.operations().forTransaction(params.hash).call()
+  const ops = await horizonServer
+    .operations()
+    .forTransaction(params.hash)
+    .call()
   const expectedAmount = params.amountStroops ?? null
 
   const match = ops.records.find(record => {
     if (record.type !== 'payment') return false
     if (record.asset_type !== 'native') return false
-    const toMatches =
-      record.to?.toUpperCase() === params.to.toUpperCase()
+    const toMatches = record.to?.toUpperCase() === params.to.toUpperCase()
     const fromMatches = params.from
       ? record.from?.toUpperCase() === params.from.toUpperCase()
       : true
@@ -69,7 +84,7 @@ export async function verifyNativePayment(params: {
 
   return {
     ok: true as const,
-    closedAt: tx.closed_at as string,
+    closedAt: tx.closed_at,
     operationId: match.id as string
   }
 }

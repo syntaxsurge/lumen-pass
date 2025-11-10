@@ -133,7 +133,11 @@ export default defineSchema({
     ownerId: v.id('users'),
     name: v.string(),
     recipients: v.array(
-      v.object({ address: v.string(), shareBps: v.number(), label: v.optional(v.string()) })
+      v.object({
+        address: v.string(),
+        shareBps: v.number(),
+        label: v.optional(v.string())
+      })
     ),
     createdAt: v.number(),
     updatedAt: v.number()

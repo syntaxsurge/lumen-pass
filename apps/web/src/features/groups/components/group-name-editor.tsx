@@ -45,14 +45,14 @@ export function GroupNameEditor({ groupId, name }: GroupNameEditorProps) {
         <TextareaAutosize
           ref={inputRef}
           value={value}
-          onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+          onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) =>
             setValue(event.target.value)
           }
           onBlur={() => {
             setIsEditing(false)
             void commitChange(value)
           }}
-          onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => {
+          onKeyDown={(event: React.KeyboardEvent<HTMLTextAreaElement>) => {
             if (event.key === 'Enter') {
               event.preventDefault()
               inputRef.current?.blur()

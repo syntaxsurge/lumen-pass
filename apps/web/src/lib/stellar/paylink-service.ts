@@ -8,11 +8,11 @@ import {
   TransactionBuilder
 } from '@stellar/stellar-sdk'
 
+import { SETTLEMENT_TOKEN_DECIMALS } from '@/lib/config'
 import {
   STELLAR_HORIZON_URL,
   STELLAR_NETWORK_PASSPHRASE
 } from '@/lib/stellar/config'
-import { SETTLEMENT_TOKEN_DECIMALS } from '@/lib/config'
 import type { StellarSigner } from '@/lib/stellar/lumen-pass-service'
 
 const DECIMAL_FACTOR = 10n ** BigInt(SETTLEMENT_TOKEN_DECIMALS)
@@ -22,7 +22,9 @@ export function formatStroopsAsDecimal(amount: bigint): string {
   const abs = amount < 0n ? -amount : amount
   const whole = abs / DECIMAL_FACTOR
   const fraction = abs % DECIMAL_FACTOR
-  const fractionStr = fraction.toString().padStart(SETTLEMENT_TOKEN_DECIMALS, '0')
+  const fractionStr = fraction
+    .toString()
+    .padStart(SETTLEMENT_TOKEN_DECIMALS, '0')
   if (fraction === 0n) {
     return `${sign}${whole}.0000000`
   }
@@ -33,13 +35,10 @@ export function formatStroopsAsDecimal(amount: bigint): string {
 export function stroopsFromAmountString(value: string): bigint {
   const [wholePart, fractionPart = ''] = value.split('.')
   const sanitizedWhole = wholePart.trim() || '0'
-  const paddedFraction = (fractionPart + '0'.repeat(SETTLEMENT_TOKEN_DECIMALS)).slice(
-    0,
-    SETTLEMENT_TOKEN_DECIMALS
-  )
-  return (
-    BigInt(sanitizedWhole) * DECIMAL_FACTOR + BigInt(paddedFraction || '0')
-  )
+  const paddedFraction = (
+    fractionPart + '0'.repeat(SETTLEMENT_TOKEN_DECIMALS)
+  ).slice(0, SETTLEMENT_TOKEN_DECIMALS)
+  return BigInt(sanitizedWhole) * DECIMAL_FACTOR + BigInt(paddedFraction || '0')
 }
 
 type PaylinkPaymentParams = {
@@ -88,7 +87,7 @@ export async function submitNativePaymentViaWallet({
   const tx = builder.setTimeout(180).build()
   // Provide the transaction envelope (base64) to the wallet
   const unsignedBase64 = tx.toEnvelope().toXDR('base64')
-  const signedRaw = await signTransaction(unsignedBase64)
+  const signedRaw: unknown = await signTransaction(unsignedBase64)
 
   // Normalize the wallet response into a base64 envelope string.
   const signedBase64 = (() => {

@@ -1,4 +1,7 @@
-import { Client as LumenPassClient, type Config as LumenPassConfig } from 'lumen_pass'
+import {
+  Client as LumenPassClient,
+  type Config as LumenPassConfig
+} from 'lumen_pass'
 
 import {
   LUMENPASS_CONTRACT_ID,
@@ -51,7 +54,10 @@ function createClient(options?: {
 
 async function fetchLatestLedger(): Promise<LedgerSnapshot> {
   const now = Date.now()
-  if (latestLedgerCache && now - latestLedgerCache.fetchedAt < HORIZON_CACHE_TTL_MS) {
+  if (
+    latestLedgerCache &&
+    now - latestLedgerCache.fetchedAt < HORIZON_CACHE_TTL_MS
+  ) {
     return latestLedgerCache
   }
 
@@ -88,7 +94,10 @@ async function estimateExpiryTimestamp(ledger: number | null | undefined) {
     const delta = ledger - latest.sequence
     return latest.closedAt + delta * DEFAULT_LEDGER_DURATION_MS
   } catch (error) {
-    console.warn('[lumen-pass] falling back to best-effort expiry estimate', error)
+    console.warn(
+      '[lumen-pass] falling back to best-effort expiry estimate',
+      error
+    )
     // Fall back to "now + duration" approximation if Horizon is unreachable.
     return Date.now() + DEFAULT_LEDGER_DURATION_MS * 6
   }
@@ -105,7 +114,9 @@ export async function getPrice(): Promise<bigint | null> {
   if (!LUMENPASS_CONTRACT_ID) return null
   const client = createClient()
   const { result } = await client.price()
-  return typeof result === 'number' ? BigInt(result) : (result as unknown as bigint)
+  return typeof result === 'number'
+    ? BigInt(result)
+    : (result as unknown as bigint)
 }
 
 export async function getExpiryLedger(user: string) {
@@ -130,7 +141,9 @@ export async function isMember(user: string) {
   return Boolean(result)
 }
 
-export async function subscribe(signer: StellarSigner): Promise<SubscriptionReceipt> {
+export async function subscribe(
+  signer: StellarSigner
+): Promise<SubscriptionReceipt> {
   if (!signer.signTransaction) {
     throw new Error('Wallet must support signTransaction.')
   }

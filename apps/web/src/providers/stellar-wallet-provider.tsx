@@ -1,11 +1,6 @@
 'use client'
 
 import {
-  FREIGHTER_ID,
-  StellarWalletsKit,
-  allowAllModules
-} from '@creit.tech/stellar-wallets-kit'
-import {
   createContext,
   useCallback,
   useContext,
@@ -14,6 +9,12 @@ import {
   useState
 } from 'react'
 import type { ReactNode } from 'react'
+
+import {
+  FREIGHTER_ID,
+  StellarWalletsKit,
+  allowAllModules
+} from '@creit.tech/stellar-wallets-kit'
 
 import { STELLAR_WALLET_NETWORK } from '@/lib/stellar/config'
 
@@ -114,7 +115,9 @@ export function StellarWalletProvider({ children }: { children: ReactNode }) {
 export function useStellarWalletContext() {
   const context = useContext(StellarWalletContext)
   if (!context) {
-    throw new Error('useStellarWalletContext must be used within StellarWalletProvider')
+    throw new Error(
+      'useStellarWalletContext must be used within StellarWalletProvider'
+    )
   }
   return context
 }

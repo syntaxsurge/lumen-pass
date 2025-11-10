@@ -3,10 +3,9 @@
 import { useEffect, useMemo, useState } from 'react'
 
 import { useMutation, useQuery } from 'convex/react'
+import { Copy, Loader2, Plus, Trash2, Link2, Wallet } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
-
-import { Copy, Loader2, Plus, Trash2, Link2, Wallet } from 'lucide-react'
 
 import {
   AlertDialog,
@@ -141,8 +140,8 @@ function PaylinkCard({
               <AlertDialogHeader>
                 <AlertDialogTitle>Remove this pay link?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This will remove the pay link "@{paylink.handle}" from your dashboard.
-                  Existing payment history will remain intact.
+                  This will remove the pay link "@{paylink.handle}" from your
+                  dashboard. Existing payment history will remain intact.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -214,9 +213,7 @@ export function PaylinksSection() {
 
   const sortedPaylinks = useMemo(
     () =>
-      paylinks
-        ? [...paylinks].sort((a, b) => b.createdAt - a.createdAt)
-        : null,
+      paylinks ? [...paylinks].sort((a, b) => b.createdAt - a.createdAt) : null,
     [paylinks]
   )
 
@@ -288,8 +285,9 @@ export function PaylinksSection() {
               SatsPay link studio
             </h2>
             <p className='max-w-2xl text-sm text-muted-foreground'>
-              Mint a permanent pay handle for instant XLM deposits. Share the link
-              below and let fans or clients pay you without custom invoices.
+              Mint a permanent pay handle for instant XLM deposits. Share the
+              link below and let fans or clients pay you without custom
+              invoices.
             </p>
           </div>
           <Dialog open={openCreate} onOpenChange={setOpenCreate}>
@@ -401,7 +399,8 @@ export function PaylinksSection() {
           ))
         ) : (
           <div className='rounded-2xl border border-dashed border-border/70 bg-muted/30 p-10 text-center text-sm text-muted-foreground'>
-            You have not created any SatsPay links yet. Use the Create SatsPay link button to issue your first pay handle.
+            You have not created any SatsPay links yet. Use the Create SatsPay
+            link button to issue your first pay handle.
           </div>
         )}
       </div>

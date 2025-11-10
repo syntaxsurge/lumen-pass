@@ -2,11 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
-import { useMutation, useQuery } from 'convex/react'
-import { useFieldArray, useForm } from 'react-hook-form'
 import { StrKey } from '@stellar/stellar-sdk'
-import { toast } from 'sonner'
-
+import { useMutation, useQuery } from 'convex/react'
 import {
   Copy,
   FileText,
@@ -19,6 +16,8 @@ import {
   Wallet,
   ExternalLink
 } from 'lucide-react'
+import { useFieldArray, useForm } from 'react-hook-form'
+import { toast } from 'sonner'
 
 import {
   AlertDialog,
@@ -52,7 +51,6 @@ import {
   FormMessage
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
 import { api } from '@/convex/_generated/api'
 import type { Doc } from '@/convex/_generated/dataModel'
@@ -65,8 +63,8 @@ import {
   formatSettlementToken,
   parseSettlementTokenAmount
 } from '@/lib/settlement-token'
-import { issueInvoice } from '@/lib/stellar/invoice-registry-service'
 import { getTransactionUrl } from '@/lib/stellar/explorer'
+import { issueInvoice } from '@/lib/stellar/invoice-registry-service'
 
 type InvoiceLineItemFormValues = {
   description: string
@@ -168,10 +166,7 @@ export function InvoicesSection() {
     name: 'lineItems'
   })
 
-  const registryAddress = useMemo(
-    () => getInvoiceRegistryAddress() || '',
-    []
-  )
+  const registryAddress = useMemo(() => getInvoiceRegistryAddress() || '', [])
   const publishInvoiceOnchain = useCallback(
     async (params: {
       slug: string
@@ -220,7 +215,12 @@ export function InvoicesSection() {
         setIssuingSlug(null)
       }
     },
-    [registerOnchain, registryAddress, stellarWallet.address, stellarWallet.signTransaction]
+    [
+      registerOnchain,
+      registryAddress,
+      stellarWallet.address,
+      stellarWallet.signTransaction
+    ]
   )
 
   const handleSubmit = async (values: InvoiceFormValues) => {
@@ -257,13 +257,11 @@ export function InvoicesSection() {
         ? new Date(values.dueDate).getTime()
         : undefined
 
-    let created:
-      | {
-          slug: string
-          number: string
-          totalAmount: string
-        }
-      | null = null
+    let created: {
+      slug: string
+      number: string
+      totalAmount: string
+    } | null = null
 
     try {
       setSubmitting(true)
@@ -320,8 +318,7 @@ export function InvoicesSection() {
         toast.warning(
           'Invoice saved as draft. Issue it on-chain from the list once your wallet is ready.',
           {
-            description:
-              error instanceof Error ? error.message : undefined
+            description: error instanceof Error ? error.message : undefined
           }
         )
       }
@@ -414,8 +411,8 @@ export function InvoicesSection() {
               Invoice studio
             </h2>
             <p className='max-w-2xl text-sm text-muted-foreground'>
-              Price work in {SETTLEMENT_TOKEN_SYMBOL}, link client payments to SatsPay,
-              and push invoices on-chain with a single flow.
+              Price work in {SETTLEMENT_TOKEN_SYMBOL}, link client payments to
+              SatsPay, and push invoices on-chain with a single flow.
             </p>
           </div>
           <Dialog open={openCreate} onOpenChange={setOpenCreate}>
@@ -429,8 +426,8 @@ export function InvoicesSection() {
               <DialogHeader>
                 <DialogTitle>Issue invoice</DialogTitle>
                 <DialogDescription>
-                  Configure line items, link a SatsPay handle, and optionally lock a
-                  payer wallet before publishing on-chain.
+                  Configure line items, link a SatsPay handle, and optionally
+                  lock a payer wallet before publishing on-chain.
                 </DialogDescription>
               </DialogHeader>
               <Form {...form}>
@@ -467,8 +464,8 @@ export function InvoicesSection() {
                           />
                         </FormControl>
                         <FormDescription>
-                          SatsPay handle that will receive payment. Leave blank to
-                          attach later.
+                          SatsPay handle that will receive payment. Leave blank
+                          to attach later.
                         </FormDescription>
                         <FormMessage />
                         <datalist id='paylink-options'>
@@ -489,7 +486,10 @@ export function InvoicesSection() {
                       <FormItem>
                         <FormLabel>Customer name</FormLabel>
                         <FormControl>
-                          <Input placeholder='Client or organization' {...field} />
+                          <Input
+                            placeholder='Client or organization'
+                            {...field}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -503,7 +503,10 @@ export function InvoicesSection() {
                       <FormItem>
                         <FormLabel>Customer email</FormLabel>
                         <FormControl>
-                          <Input placeholder='Optional contact email' {...field} />
+                          <Input
+                            placeholder='Optional contact email'
+                            {...field}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -581,7 +584,11 @@ export function InvoicesSection() {
                         variant='outline'
                         size='sm'
                         onClick={() =>
-                          append({ description: '', quantity: 1, unitAmount: '' })
+                          append({
+                            description: '',
+                            quantity: 1,
+                            unitAmount: ''
+                          })
                         }
                       >
                         Add line item
@@ -675,9 +682,7 @@ export function InvoicesSection() {
       </div>
 
       <div className='space-y-6'>
-        <h2 className='text-2xl font-bold text-foreground'>
-          Recent Invoices
-        </h2>
+        <h2 className='text-2xl font-bold text-foreground'>Recent Invoices</h2>
         {!invoices ? (
           <div className='flex items-center justify-center gap-3 rounded-3xl border border-border/70 bg-muted/20 p-12 text-sm text-muted-foreground'>
             <Loader2 className='h-5 w-5 animate-spin text-primary' />
@@ -861,7 +866,9 @@ export function InvoicesSection() {
                             variant='ghost'
                             size='sm'
                             className='gap-2 text-muted-foreground hover:text-destructive'
-                            disabled={invoice.status === 'paid' || archivingThis}
+                            disabled={
+                              invoice.status === 'paid' || archivingThis
+                            }
                           >
                             <Trash2 className='h-4 w-4' />
                             Archive
@@ -869,10 +876,13 @@ export function InvoicesSection() {
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Archive this invoice?</AlertDialogTitle>
+                            <AlertDialogTitle>
+                              Archive this invoice?
+                            </AlertDialogTitle>
                             <AlertDialogDescription>
-                              This will archive invoice "{invoice.number}" and hide it from your
-                              dashboard. On-chain records will remain intact.
+                              This will archive invoice "{invoice.number}" and
+                              hide it from your dashboard. On-chain records will
+                              remain intact.
                               {invoice.status === 'paid' && (
                                 <span className='mt-2 block font-semibold text-destructive'>
                                   Paid invoices cannot be archived.
@@ -900,7 +910,8 @@ export function InvoicesSection() {
         ) : (
           <div className='rounded-3xl border border-dashed border-border/70 bg-muted/30 p-12 text-center'>
             <p className='text-base text-muted-foreground'>
-              Use the Issue invoice button above to populate this list with your first record.
+              Use the Issue invoice button above to populate this list with your
+              first record.
             </p>
           </div>
         )}

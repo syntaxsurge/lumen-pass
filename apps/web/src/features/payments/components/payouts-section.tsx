@@ -1,12 +1,11 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 
 import { useMutation, useQuery } from 'convex/react'
+import { Loader2, Plus, Trash2, Send } from 'lucide-react'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { toast } from 'sonner'
-
-import { Loader2, Plus, Trash2, Send } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -28,11 +27,11 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { api } from '@/convex/_generated/api'
-import type { Doc, Id } from '@/convex/_generated/dataModel'
-import { useWalletAccount } from '@/hooks/use-wallet-account'
+import type { Doc } from '@/convex/_generated/dataModel'
 import { useStellarWallet } from '@/hooks/use-stellar-wallet'
+import { useWalletAccount } from '@/hooks/use-wallet-account'
 import { SETTLEMENT_TOKEN_SYMBOL } from '@/lib/config'
-import { formatSettlementToken, parseSettlementTokenAmount } from '@/lib/settlement-token'
+import { parseSettlementTokenAmount } from '@/lib/settlement-token'
 import { executeSplit } from '@/lib/stellar/split-router-service'
 
 type Recipient = { address: string; shareBps: number; label?: string }
@@ -45,10 +44,11 @@ type ScheduleForm = {
 export function PayoutsSection() {
   const { address } = useWalletAccount()
   const stellarWallet = useStellarWallet()
-  const schedules = useQuery(api.payouts.listSchedules, address ? { ownerAddress: address } : 'skip')
+  const schedules = useQuery(
+    api.payouts.listSchedules,
+    address ? { ownerAddress: address } : 'skip'
+  )
   const createSchedule = useMutation(api.payouts.createSchedule)
-  const updateSchedule = useMutation(api.payouts.updateSchedule)
-  const deleteSchedule = useMutation(api.payouts.deleteSchedule)
   const recordExecution = useMutation(api.payouts.recordExecution)
 
   const [openCreate, setOpenCreate] = useState(false)
@@ -57,13 +57,20 @@ export function PayoutsSection() {
   const form = useForm<ScheduleForm>({
     defaultValues: { name: '', recipients: [{ address: '', shareBps: 10000 }] }
   })
-  const recipients = useFieldArray({ control: form.control, name: 'recipients' })
+  const recipients = useFieldArray({
+    control: form.control,
+    name: 'recipients'
+  })
 
   const onCreate = async (values: ScheduleForm) => {
     if (!address) return toast.error('Connect your wallet first.')
     try {
       setBusy(true)
-      await createSchedule({ ownerAddress: address, name: values.name, recipients: values.recipients })
+      await createSchedule({
+        ownerAddress: address,
+        name: values.name,
+        recipients: values.recipients
+      })
       toast.success('Schedule created')
       setOpenCreate(false)
       form.reset({ name: '', recipients: [{ address: '', shareBps: 10000 }] })
@@ -83,7 +90,10 @@ export function PayoutsSection() {
       setBusy(true)
       const signer = stellarWallet.signTransaction
       if (!signer) throw new Error('Wallet not connected')
-      const recipients = schedule.recipients.map(r => ({ address: r.address, shareBps: r.shareBps }))
+      const recipients = schedule.recipients.map(r => ({
+        address: r.address,
+        shareBps: r.shareBps
+      }))
       const res = await executeSplit({
         publicKey: address,
         signTransaction: signer,
@@ -91,7 +101,13 @@ export function PayoutsSection() {
         amount
       })
       const txHash = (res as unknown as { hash?: string })?.hash ?? ''
-      await recordExecution({ ownerAddress: address, scheduleId: schedule._id, txHash, totalAmount: amount.toString(), executedAt: Date.now() })
+      await recordExecution({
+        ownerAddress: address,
+        scheduleId: schedule._id,
+        txHash,
+        totalAmount: amount.toString(),
+        executedAt: Date.now()
+      })
       toast.success('Payout executed')
     } catch (e) {
       console.error(e)
@@ -105,8 +121,13 @@ export function PayoutsSection() {
     <div className='space-y-8'>
       <div className='flex items-center justify-between'>
         <div>
-          <h2 className='text-xl font-semibold text-foreground'>Split payouts</h2>
-          <p className='text-sm text-muted-foreground'>Distribute {SETTLEMENT_TOKEN_SYMBOL} across collaborators in one transaction.</p>
+          <h2 className='text-xl font-semibold text-foreground'>
+            Split payouts
+          </h2>
+          <p className='text-sm text-muted-foreground'>
+            Distribute {SETTLEMENT_TOKEN_SYMBOL} across collaborators in one
+            transaction.
+          </p>
         </div>
         <Dialog open={openCreate} onOpenChange={setOpenCreate}>
           <DialogTrigger asChild>
@@ -117,47 +138,96 @@ export function PayoutsSection() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Create payout schedule</DialogTitle>
-              <DialogDescription>Addresses must be valid Stellar public keys. Shares must total 10000 bps.</DialogDescription>
+              <DialogDescription>
+                Addresses must be valid Stellar public keys. Shares must total
+                10000 bps.
+              </DialogDescription>
             </DialogHeader>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onCreate)} className='space-y-4'>
-                <FormField control={form.control} name='name' rules={{ required: true }} render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Name</FormLabel>
-                    <FormControl><Input placeholder='Revenue split' {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
+              <form
+                onSubmit={form.handleSubmit(onCreate)}
+                className='space-y-4'
+              >
+                <FormField
+                  control={form.control}
+                  name='name'
+                  rules={{ required: true }}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder='Revenue split' {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <div className='space-y-3'>
                   {recipients.fields.map((f, i) => (
                     <div key={f.id} className='grid grid-cols-12 gap-2'>
-                      <FormField control={form.control} name={`recipients.${i}.address`} rules={{ required: true }} render={({ field }) => (
-                        <FormItem className='col-span-8'>
-                          <FormLabel>Recipient (G...)</FormLabel>
-                          <FormControl><Input placeholder='GABC...' {...field} /></FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )} />
-                      <FormField control={form.control} name={`recipients.${i}.shareBps`} rules={{ required: true, min: 0, max: 10000 }} render={({ field }) => (
-                        <FormItem className='col-span-3'>
-                          <FormLabel>Share (bps)</FormLabel>
-                          <FormControl><Input type='number' min={0} max={10000} step={1} {...field} /></FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )} />
+                      <FormField
+                        control={form.control}
+                        name={`recipients.${i}.address`}
+                        rules={{ required: true }}
+                        render={({ field }) => (
+                          <FormItem className='col-span-8'>
+                            <FormLabel>Recipient (G...)</FormLabel>
+                            <FormControl>
+                              <Input placeholder='GABC...' {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name={`recipients.${i}.shareBps`}
+                        rules={{ required: true, min: 0, max: 10000 }}
+                        render={({ field }) => (
+                          <FormItem className='col-span-3'>
+                            <FormLabel>Share (bps)</FormLabel>
+                            <FormControl>
+                              <Input
+                                type='number'
+                                min={0}
+                                max={10000}
+                                step={1}
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                       <div className='col-span-1 flex items-end'>
-                        <Button type='button' variant='ghost' size='icon' onClick={() => recipients.remove(i)} disabled={recipients.fields.length === 1}>
+                        <Button
+                          type='button'
+                          variant='ghost'
+                          size='icon'
+                          onClick={() => recipients.remove(i)}
+                          disabled={recipients.fields.length === 1}
+                        >
                           <Trash2 className='h-4 w-4' />
                         </Button>
                       </div>
                     </div>
                   ))}
-                  <Button type='button' variant='outline' size='sm' onClick={() => recipients.append({ address: '', shareBps: 0 })} className='gap-2'>
+                  <Button
+                    type='button'
+                    variant='outline'
+                    size='sm'
+                    onClick={() =>
+                      recipients.append({ address: '', shareBps: 0 })
+                    }
+                    className='gap-2'
+                  >
                     <Plus className='h-4 w-4' /> Add recipient
                   </Button>
                 </div>
                 <DialogFooter>
-                  <Button type='submit' disabled={busy}>Create</Button>
+                  <Button type='submit' disabled={busy}>
+                    Create
+                  </Button>
                 </DialogFooter>
               </form>
             </Form>
@@ -167,7 +237,8 @@ export function PayoutsSection() {
 
       {!schedules ? (
         <div className='flex items-center justify-center gap-3 rounded-2xl border border-border/70 bg-muted/20 p-10 text-sm text-muted-foreground'>
-          <Loader2 className='h-5 w-5 animate-spin text-primary' /> Loading schedules…
+          <Loader2 className='h-5 w-5 animate-spin text-primary' /> Loading
+          schedules…
         </div>
       ) : schedules.length === 0 ? (
         <div className='rounded-2xl border border-dashed border-border/70 bg-muted/20 p-8 text-center text-sm text-muted-foreground'>
@@ -176,11 +247,18 @@ export function PayoutsSection() {
       ) : (
         <div className='space-y-4'>
           {schedules.map(s => (
-            <div key={s._id} className='rounded-2xl border border-border/70 bg-background/70 p-4'>
+            <div
+              key={s._id}
+              className='rounded-2xl border border-border/70 bg-background/70 p-4'
+            >
               <div className='flex items-center justify-between'>
                 <div>
-                  <p className='text-sm font-semibold text-foreground'>{s.name}</p>
-                  <p className='text-xs text-muted-foreground'>{s.recipients.length} recipients</p>
+                  <p className='text-sm font-semibold text-foreground'>
+                    {s.name}
+                  </p>
+                  <p className='text-xs text-muted-foreground'>
+                    {s.recipients.length} recipients
+                  </p>
                 </div>
                 <ExecuteDialog schedule={s} onExecute={execute} busy={busy} />
               </div>
@@ -192,7 +270,15 @@ export function PayoutsSection() {
   )
 }
 
-function ExecuteDialog({ schedule, onExecute, busy }: { schedule: Doc<'payoutSchedules'>; onExecute: (s: Doc<'payoutSchedules'>, amount: string) => Promise<unknown>; busy: boolean }) {
+function ExecuteDialog({
+  schedule,
+  onExecute,
+  busy
+}: {
+  schedule: Doc<'payoutSchedules'>
+  onExecute: (s: Doc<'payoutSchedules'>, amount: string) => Promise<unknown>
+  busy: boolean
+}) {
   const [open, setOpen] = useState(false)
   const [amount, setAmount] = useState('')
   const handle = async () => {
@@ -203,21 +289,32 @@ function ExecuteDialog({ schedule, onExecute, busy }: { schedule: Doc<'payoutSch
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button type='button' size='sm' className='gap-2'><Send className='h-4 w-4' /> Execute</Button>
+        <Button type='button' size='sm' className='gap-2'>
+          <Send className='h-4 w-4' /> Execute
+        </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Execute payout</DialogTitle>
-          <DialogDescription>Enter the total amount ({SETTLEMENT_TOKEN_SYMBOL}) to split across recipients.</DialogDescription>
+          <DialogDescription>
+            Enter the total amount ({SETTLEMENT_TOKEN_SYMBOL}) to split across
+            recipients.
+          </DialogDescription>
         </DialogHeader>
         <div className='space-y-3'>
           <div>
             <FormLabel>Total amount ({SETTLEMENT_TOKEN_SYMBOL})</FormLabel>
-            <Input placeholder='0.00' value={amount} onChange={e => setAmount(e.target.value)} />
+            <Input
+              placeholder='0.00'
+              value={amount}
+              onChange={e => setAmount(e.target.value)}
+            />
           </div>
         </div>
         <DialogFooter>
-          <Button type='button' onClick={handle} disabled={busy}>Submit</Button>
+          <Button type='button' onClick={handle} disabled={busy}>
+            Submit
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

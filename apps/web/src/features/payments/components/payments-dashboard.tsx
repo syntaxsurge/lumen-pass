@@ -9,14 +9,15 @@ import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useWalletUser } from '@/hooks/use-wallet-user'
 
+import { GetXlmSection } from './get-xlm-section'
 import { InvoicesSection } from './invoices-section'
 import { PaylinksSection } from './paylinks-section'
 import { SaveGoalsSection } from './save-goals-section'
 import { StatusOverviewBanner, StatusSection } from './status-section'
-import { GetXlmSection } from './get-xlm-section'
 
 const LazyPayoutsSection = dynamic(
-  () => import('./payouts-section').then(mod => ({ default: mod.PayoutsSection })),
+  () =>
+    import('./payouts-section').then(mod => ({ default: mod.PayoutsSection })),
   {
     ssr: false,
     loading: () => (
@@ -43,7 +44,9 @@ export function PaymentsDashboard() {
     useState<(typeof TAB_ITEMS)[number]['value']>('paylinks')
 
   if (!wallet.isConnected) {
-    return <ConnectWalletGate status={wallet.status} onConnect={wallet.connect} />
+    return (
+      <ConnectWalletGate status={wallet.status} onConnect={wallet.connect} />
+    )
   }
 
   if (!wallet.isUserReady) {
@@ -156,10 +159,12 @@ function ConnectWalletGate({
         <div className='mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary'>
           <Wallet className='h-8 w-8' />
         </div>
-        <h1 className='text-3xl font-semibold text-foreground'>Connect your Stellar wallet</h1>
+        <h1 className='text-3xl font-semibold text-foreground'>
+          Connect your Stellar wallet
+        </h1>
         <p className='mt-3 text-base text-muted-foreground'>
-          Payments, invoices, and payouts are scoped to your wallet. Connect to your preferred
-          Stellar Wallet Kit option to continue.
+          Payments, invoices, and payouts are scoped to your wallet. Connect to
+          your preferred Stellar Wallet Kit option to continue.
         </p>
         <Button
           size='lg'
@@ -190,10 +195,12 @@ function EnsuringWorkspace() {
           <ShieldCheck className='h-10 w-10' />
         </div>
         <div>
-          <p className='text-lg font-semibold text-foreground'>Preparing your workspace…</p>
+          <p className='text-lg font-semibold text-foreground'>
+            Preparing your workspace…
+          </p>
           <p className='text-sm text-muted-foreground'>
-            Syncing your wallet identity with Convex so your paylinks, invoices, and payout
-            schedules load correctly.
+            Syncing your wallet identity with Convex so your paylinks, invoices,
+            and payout schedules load correctly.
           </p>
           <div className='mt-4 flex items-center gap-2 text-sm text-muted-foreground'>
             <Loader2 className='h-4 w-4 animate-spin text-primary' />

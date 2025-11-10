@@ -37,7 +37,11 @@ export const createSchedule = mutation({
     ownerAddress: v.string(),
     name: v.string(),
     recipients: v.array(
-      v.object({ address: v.string(), shareBps: v.number(), label: v.optional(v.string()) })
+      v.object({
+        address: v.string(),
+        shareBps: v.number(),
+        label: v.optional(v.string())
+      })
     )
   },
   handler: async (ctx, args) => {
@@ -61,17 +65,23 @@ export const updateSchedule = mutation({
     name: v.optional(v.string()),
     recipients: v.optional(
       v.array(
-        v.object({ address: v.string(), shareBps: v.number(), label: v.optional(v.string()) })
+        v.object({
+          address: v.string(),
+          shareBps: v.number(),
+          label: v.optional(v.string())
+        })
       )
     )
   },
   handler: async (ctx, args) => {
     const owner = await requireUserByWallet(ctx, args.ownerAddress)
     const schedule = await ctx.db.get(args.scheduleId)
-    if (!schedule || schedule.ownerId !== owner._id) throw new Error('Not found')
+    if (!schedule || schedule.ownerId !== owner._id)
+      throw new Error('Not found')
     const payload: Record<string, unknown> = { updatedAt: Date.now() }
     if (typeof args.name !== 'undefined') payload.name = args.name.trim()
-    if (typeof args.recipients !== 'undefined') payload.recipients = sanitizeRecipients(args.recipients)
+    if (typeof args.recipients !== 'undefined')
+      payload.recipients = sanitizeRecipients(args.recipients)
     await ctx.db.patch(args.scheduleId, payload)
   }
 })
@@ -81,7 +91,8 @@ export const deleteSchedule = mutation({
   handler: async (ctx, args) => {
     const owner = await requireUserByWallet(ctx, args.ownerAddress)
     const schedule = await ctx.db.get(args.scheduleId)
-    if (!schedule || schedule.ownerId !== owner._id) throw new Error('Not found')
+    if (!schedule || schedule.ownerId !== owner._id)
+      throw new Error('Not found')
     const executions = await ctx.db
       .query('payoutExecutions')
       .withIndex('by_scheduleId', q => q.eq('scheduleId', args.scheduleId))
@@ -102,7 +113,8 @@ export const recordExecution = mutation({
   handler: async (ctx, args) => {
     const owner = await requireUserByWallet(ctx, args.ownerAddress)
     const schedule = await ctx.db.get(args.scheduleId)
-    if (!schedule || schedule.ownerId !== owner._id) throw new Error('Not found')
+    if (!schedule || schedule.ownerId !== owner._id)
+      throw new Error('Not found')
     const existing = await ctx.db
       .query('payoutExecutions')
       .withIndex('by_txHash', q => q.eq('txHash', args.txHash.toLowerCase()))
@@ -116,4 +128,3 @@ export const recordExecution = mutation({
     })
   }
 })
-

@@ -38,7 +38,8 @@ export function useWalletUser() {
   }, [wallet.address, currentUser, ensureUser])
 
   const isEnsuringUser =
-    Boolean(wallet.address) && (typeof currentUser === 'undefined' || currentUser === null)
+    Boolean(wallet.address) &&
+    (typeof currentUser === 'undefined' || currentUser === null)
   const isUserReady = !wallet.address || Boolean(currentUser)
 
   return useMemo(
@@ -51,4 +52,3 @@ export function useWalletUser() {
     [currentUser, isEnsuringUser, isUserReady, wallet]
   )
 }
-

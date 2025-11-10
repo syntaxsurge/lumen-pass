@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useState } from 'react'
 
 import { useMutation } from 'convex/react'
 import { toast } from 'sonner'
@@ -15,8 +15,8 @@ import {
   DialogTitle
 } from '@/components/ui/dialog'
 import { api } from '@/convex/_generated/api'
-import { useWalletAccount } from '@/hooks/use-wallet-account'
 import { useStellarWallet } from '@/hooks/use-stellar-wallet'
+import { useWalletAccount } from '@/hooks/use-wallet-account'
 import {
   subscribe,
   isMember as stellarIsMember,
@@ -80,7 +80,14 @@ export function JoinGroupButton() {
     } finally {
       setIsWorking(false)
     }
-  }, [address, connect, group._id, isConnected, joinGroup, stellar.signTransaction])
+  }, [
+    address,
+    connect,
+    group._id,
+    isConnected,
+    joinGroup,
+    stellar.signTransaction
+  ])
 
   if (isOwner) return null
 
@@ -95,17 +102,25 @@ export function JoinGroupButton() {
         Join {priceLabel}
       </Button>
 
-      <Dialog open={dialogOpen} onOpenChange={(open: boolean) => setDialogOpen(open)}>
+      <Dialog
+        open={dialogOpen}
+        onOpenChange={(open: boolean) => setDialogOpen(open)}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Join Group</DialogTitle>
             <DialogDescription>
-              This will connect your Stellar wallet and activate membership via the Soroban
-              contract.
+              This will connect your Stellar wallet and activate membership via
+              the Soroban contract.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button type='button' className='h-10 px-6' onClick={handleJoin} disabled={isWorking}>
+            <Button
+              type='button'
+              className='h-10 px-6'
+              onClick={handleJoin}
+              disabled={isWorking}
+            >
               {isWorking ? 'Processing…' : 'Confirm'}
             </Button>
           </DialogFooter>

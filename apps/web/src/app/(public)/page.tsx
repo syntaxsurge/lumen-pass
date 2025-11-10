@@ -134,7 +134,11 @@ const howItWorks = [
     title: 'Manage memberships & payouts',
     description:
       'Gate feeds and classrooms, schedule recurring payouts, and monitor treasury balances. Everything stays synchronized between Convex and Stellar.',
-    details: ['Recurring split payouts', 'Membership insights', 'Treasury visibility']
+    details: [
+      'Recurring split payouts',
+      'Membership insights',
+      'Treasury visibility'
+    ]
   }
 ]
 
@@ -326,8 +330,11 @@ export default function HomePage() {
 
             <div className='group relative'>
               <div className='pointer-events-none absolute -inset-1 rounded-3xl bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20 opacity-75 blur-xl transition-all group-hover:opacity-100' />
-              <div className='relative overflow-hidden rounded-2xl border border-primary/30 bg-card/95 p-2 backdrop-blur-xl shadow-2xl shadow-primary/10 transition-all group-hover:border-primary/50 group-hover:shadow-primary/20'>
-                <AspectRatio ratio={16 / 9} className='overflow-hidden rounded-xl'>
+              <div className='relative overflow-hidden rounded-2xl border border-primary/30 bg-card/95 p-2 shadow-2xl shadow-primary/10 backdrop-blur-xl transition-all group-hover:border-primary/50 group-hover:shadow-primary/20'>
+                <AspectRatio
+                  ratio={16 / 9}
+                  className='overflow-hidden rounded-xl'
+                >
                   <iframe
                     src='https://www.youtube.com/embed/xxxxxxx'
                     title='LumenPass Platform Demo'

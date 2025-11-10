@@ -214,9 +214,7 @@ export default function Create() {
         toast.success('Platform fee paid', { description: feeTxHash })
 
         const priceNumeric =
-          values.billingCadence === 'monthly'
-            ? Number(values.price ?? 0)
-            : 0
+          values.billingCadence === 'monthly' ? Number(values.price ?? 0) : 0
         const formattedPrice = Number.isFinite(priceNumeric)
           ? Math.max(0, priceNumeric)
           : 0
@@ -341,7 +339,10 @@ export default function Create() {
                       <FormItem>
                         <FormLabel>Group name</FormLabel>
                         <FormControl>
-                          <Input placeholder='Creator Ops Collective' {...field} />
+                          <Input
+                            placeholder='Creator Ops Collective'
+                            {...field}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -354,19 +355,25 @@ export default function Create() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Visibility</FormLabel>
-                        <Select value={field.value} onValueChange={field.onChange}>
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder='Select visibility' />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value='private'>Private (wallet-gated)</SelectItem>
+                            <SelectItem value='private'>
+                              Private (wallet-gated)
+                            </SelectItem>
                             <SelectItem value='public'>Public</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormDescription>
-                          Paid memberships are automatically private to enforce wallet gating.
+                          Paid memberships are automatically private to enforce
+                          wallet gating.
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -413,7 +420,10 @@ export default function Create() {
                   )}
                 />
 
-                <GroupMediaFields form={form} requestUploadUrl={requestUploadUrl} />
+                <GroupMediaFields
+                  form={form}
+                  requestUploadUrl={requestUploadUrl}
+                />
 
                 <FormField
                   control={form.control}
@@ -422,7 +432,10 @@ export default function Create() {
                     <FormItem>
                       <FormLabel>Tags</FormLabel>
                       <FormControl>
-                        <Input placeholder='community, education, ops' {...field} />
+                        <Input
+                          placeholder='community, education, ops'
+                          {...field}
+                        />
                       </FormControl>
                       <FormDescription>
                         Separate tags with commas to help members discover you.
@@ -439,7 +452,10 @@ export default function Create() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Billing cadence</FormLabel>
-                        <Select value={field.value} onValueChange={field.onChange}>
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder='Choose how you bill' />
@@ -451,7 +467,8 @@ export default function Create() {
                           </SelectContent>
                         </Select>
                         <FormDescription>
-                          Monthly memberships require a price and remain private.
+                          Monthly memberships require a price and remain
+                          private.
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -469,7 +486,9 @@ export default function Create() {
                             type='number'
                             step='0.01'
                             placeholder='99'
-                            disabled={form.watch('billingCadence') !== 'monthly'}
+                            disabled={
+                              form.watch('billingCadence') !== 'monthly'
+                            }
                             {...field}
                           />
                         </FormControl>
@@ -481,20 +500,32 @@ export default function Create() {
 
                 <div className='flex flex-col gap-6 rounded-2xl border border-border/50 bg-muted/10 p-6'>
                   <div>
-                    <h3 className='text-lg font-semibold text-foreground'>Deployment checklist</h3>
-                    <p className='text-sm text-muted-foreground'>We publish your group to the LumenPass registry and make it instantly available to Stellar wallets.</p>
+                    <h3 className='text-lg font-semibold text-foreground'>
+                      Deployment checklist
+                    </h3>
+                    <p className='text-sm text-muted-foreground'>
+                      We publish your group to the LumenPass registry and make
+                      it instantly available to Stellar wallets.
+                    </p>
                   </div>
                   <ul className='space-y-3 text-sm text-muted-foreground'>
                     <li>• Upload hero and gallery assets for your community</li>
-                    <li>• Set pricing or keep things free for open onboarding</li>
-                    <li>• Connect your Stellar wallet to finalize deployment</li>
+                    <li>
+                      • Set pricing or keep things free for open onboarding
+                    </li>
+                    <li>
+                      • Connect your Stellar wallet to finalize deployment
+                    </li>
                   </ul>
                   <div className='flex flex-col gap-2'>
                     <Button type='submit' disabled={isProcessing}>
-                      {isProcessing ? 'Creating Community...' : 'Create Community'}
+                      {isProcessing
+                        ? 'Creating Community...'
+                        : 'Create Community'}
                     </Button>
                     <p className='text-center text-xs text-muted-foreground'>
-                      By deploying, you agree to our terms. Your app will be accessible to Stellar wallets you onboard.
+                      By deploying, you agree to our terms. Your app will be
+                      accessible to Stellar wallets you onboard.
                     </p>
                   </div>
                 </div>

@@ -13,8 +13,7 @@ export function useStellarWallet() {
     return async (xdr: string) => {
       return context.kit!.signTransaction(xdr, {
         networkPassphrase: STELLAR_NETWORK_PASSPHRASE,
-        address: context.address ?? undefined,
-        accountToSign: context.address ?? undefined
+        address: context.address ?? undefined
       })
     }
   }, [context.address, context.kit])

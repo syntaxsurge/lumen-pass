@@ -22,14 +22,14 @@ import { Separator } from '@/components/ui/separator'
 import { api } from '@/convex/_generated/api'
 import type { Doc } from '@/convex/_generated/dataModel'
 import { useStellarWallet } from '@/hooks/use-stellar-wallet'
+import { SETTLEMENT_TOKEN_SYMBOL } from '@/lib/config'
 import {
   parseSettlementTokenAmount,
   formatSettlementToken
 } from '@/lib/settlement-token'
-import { formatStroopsAsDecimal } from '@/lib/stellar/paylink-service'
-import { getTransactionUrl } from '@/lib/stellar/explorer'
 import { STELLAR_NETWORK_PASSPHRASE } from '@/lib/stellar/config'
-import { SETTLEMENT_TOKEN_SYMBOL } from '@/lib/config'
+import { getTransactionUrl } from '@/lib/stellar/explorer'
+import { formatStroopsAsDecimal } from '@/lib/stellar/paylink-service'
 import { formatTimestampRelative } from '@/lib/time'
 
 type PayPageClientProps = {
@@ -128,7 +128,11 @@ export function PayPageClient({
     if (!invoice) return []
     const items: PaidDetailItem[] = []
     if (invoice.number) {
-      items.push({ label: 'Invoice number', value: invoice.number, icon: FileText })
+      items.push({
+        label: 'Invoice number',
+        value: invoice.number,
+        icon: FileText
+      })
     }
     if (paidAtFormatted) {
       items.push({ label: 'Paid', value: paidAtFormatted, icon: Calendar })
@@ -137,10 +141,18 @@ export function PayPageClient({
       items.push({ label: 'Due date', value: dueDateFormatted, icon: Calendar })
     }
     if (paylink) {
-      items.push({ label: 'Pay handle', value: `@${paylink.handle}`, icon: AtSign })
+      items.push({
+        label: 'Pay handle',
+        value: `@${paylink.handle}`,
+        icon: AtSign
+      })
     }
     if (invoice.customerName) {
-      items.push({ label: 'Billed to', value: invoice.customerName, icon: User })
+      items.push({
+        label: 'Billed to',
+        value: invoice.customerName,
+        icon: User
+      })
     }
     if (invoice.payerAddress) {
       items.push({
@@ -190,7 +202,9 @@ export function PayPageClient({
               {paidHeroTitle}
             </h1>
             {paylink.description ? (
-              <p className='text-sm text-muted-foreground'>{paylink.description}</p>
+              <p className='text-sm text-muted-foreground'>
+                {paylink.description}
+              </p>
             ) : null}
           </div>
           <Badge variant='secondary'>Paid</Badge>
@@ -209,7 +223,9 @@ export function PayPageClient({
                     Payment complete
                   </p>
                   <h2 className='text-xl font-semibold text-foreground'>
-                    {invoice.number ? `Invoice #${invoice.number}` : 'Receipt ready'}
+                    {invoice.number
+                      ? `Invoice #${invoice.number}`
+                      : 'Receipt ready'}
                   </h2>
                 </div>
               </div>
@@ -403,7 +419,9 @@ export function PayPageClient({
             {paylink.title ?? 'Support this creator'}
           </h1>
           {paylink.description ? (
-            <p className='text-sm text-muted-foreground'>{paylink.description}</p>
+            <p className='text-sm text-muted-foreground'>
+              {paylink.description}
+            </p>
           ) : null}
         </div>
         {formatInvoiceStatus(invoice)}

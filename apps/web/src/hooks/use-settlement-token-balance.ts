@@ -67,9 +67,7 @@ export function useSettlementTokenBalance({ address }: Params): Result {
         const balances: HorizonBalance[] = Array.isArray(payload?.balances)
           ? (payload.balances as HorizonBalance[])
           : []
-        const nativeEntry = balances.find(
-          item => item?.asset_type === 'native'
-        )
+        const nativeEntry = balances.find(item => item?.asset_type === 'native')
         const amount =
           typeof nativeEntry?.balance === 'string'
             ? parseSettlementTokenAmount(nativeEntry.balance)

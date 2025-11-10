@@ -14,12 +14,10 @@ export default async function PayHandlePage({
   params,
   searchParams
 }: PayPageProps) {
-  const resolvedParams = await (
-    params ?? Promise.resolve<{ handle?: string }>({})
-  )
-  const resolvedSearchParams = await (
-    searchParams ?? Promise.resolve<{ invoice?: string; amount?: string }>({})
-  )
+  const resolvedParams = await (params ??
+    Promise.resolve<{ handle?: string }>({}))
+  const resolvedSearchParams = await (searchParams ??
+    Promise.resolve<{ invoice?: string; amount?: string }>({}))
 
   const normalizedHandle = decodeURIComponent(
     resolvedParams.handle ?? ''

@@ -182,7 +182,7 @@ export function StatusSection() {
                     {card.name}
                   </p>
                 </div>
-                <p className='mt-1 text-xs font-mono text-muted-foreground break-all'>
+                <p className='mt-1 break-all font-mono text-xs text-muted-foreground'>
                   {card.contractId || 'Not configured'}
                 </p>
                 <p className='mt-2 text-sm text-muted-foreground'>
@@ -229,9 +229,9 @@ export function StatusSection() {
       </div>
 
       <p className='text-xs text-muted-foreground'>
-        These snapshots are updated manually for now. For production deployments,
-        wire up the Stellar Horizon metrics API or your favourite observability
-        stack.
+        These snapshots are updated manually for now. For production
+        deployments, wire up the Stellar Horizon metrics API or your favourite
+        observability stack.
       </p>
     </div>
   )

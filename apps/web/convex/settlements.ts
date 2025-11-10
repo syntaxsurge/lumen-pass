@@ -1,9 +1,8 @@
 import { v } from 'convex/values'
-
 import { Client as InvoiceRegistryClient } from 'invoice_registry'
 
-import type { Doc } from './_generated/dataModel'
 import { api as generatedApi } from './_generated/api'
+import type { Doc } from './_generated/dataModel'
 import { action } from './_generated/server'
 
 const api = generatedApi as any

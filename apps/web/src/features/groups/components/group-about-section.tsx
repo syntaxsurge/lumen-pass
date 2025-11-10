@@ -3,26 +3,30 @@
 import { useEffect, useMemo, useState } from 'react'
 
 import {
+  AlertCircle,
   Calendar,
+  CheckCircle2,
   ExternalLink,
   Globe,
+  Loader2,
   Lock,
   ShieldCheck,
   Tag,
   Users
 } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useStellarWallet } from '@/hooks/use-stellar-wallet'
 import { getMembershipContractAddress } from '@/lib/config'
-import { formatTimestampRelative } from '@/lib/time'
 import { formatSettlementToken } from '@/lib/settlement-token'
+import { getContractUrl, getTransactionUrl } from '@/lib/stellar/explorer'
+import { summarizeAccount } from '@/lib/stellar/format'
 import {
   getConfig as getLumenPassConfig,
   getExpiryMs
 } from '@/lib/stellar/lumen-pass-service'
-import { getContractUrl, getTransactionUrl } from '@/lib/stellar/explorer'
-import { summarizeAccount } from '@/lib/stellar/format'
+import { formatTimestampRelative } from '@/lib/time'
 
 import { GroupDescriptionEditor } from './group-description-editor'
 import { GroupMediaCarousel } from './group-media-carousel'
@@ -41,14 +45,15 @@ export function GroupAboutSection() {
     subscription
   } = useGroupContext()
   const wallet = useStellarWallet()
+  const viewerAddress = wallet.address ?? currentUser?.walletAddress ?? null
   const [passExpiryMs, setPassExpiryMs] = useState<number | null>(
     typeof membership.passExpiresAt === 'number'
       ? membership.passExpiresAt
       : null
   )
-  const [contractConfig, setContractConfig] = useState<
-    Awaited<ReturnType<typeof getLumenPassConfig>>
-  >(null)
+  const [isResolvingExpiry, setIsResolvingExpiry] = useState(false)
+  const [contractConfig, setContractConfig] =
+    useState<Awaited<ReturnType<typeof getLumenPassConfig>>>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -69,25 +74,36 @@ export function GroupAboutSection() {
   useEffect(() => {
     if (typeof membership.passExpiresAt === 'number') {
       setPassExpiryMs(membership.passExpiresAt)
+      setIsResolvingExpiry(false)
+    } else if (membership.status !== 'active') {
+      setPassExpiryMs(null)
+      setIsResolvingExpiry(false)
     }
-  }, [membership.passExpiresAt])
+  }, [membership.passExpiresAt, membership.status])
 
   useEffect(() => {
-    if (!wallet.address) return
+    if (!viewerAddress) return
+    if (membership.status !== 'active') return
+    if (typeof membership.passExpiresAt === 'number') return
     let cancelled = false
-    getExpiryMs(wallet.address)
+    setIsResolvingExpiry(true)
+    getExpiryMs(viewerAddress)
       .then(expiry => {
         if (!cancelled) {
           setPassExpiryMs(expiry ?? null)
+          setIsResolvingExpiry(false)
         }
       })
       .catch(error => {
         console.error('Failed to resolve latest pass expiry', error)
+        if (!cancelled) {
+          setIsResolvingExpiry(false)
+        }
       })
     return () => {
       cancelled = true
     }
-  }, [wallet.address, membership.status])
+  }, [membership.passExpiresAt, membership.status, viewerAddress])
 
   const mediaSources = useMemo(() => {
     const sources: string[] = []
@@ -185,11 +201,74 @@ export function GroupAboutSection() {
     const days = Math.max(1, Math.round(seconds / 86_400))
     return `${days} day${days === 1 ? '' : 's'}`
   }, [contractConfig?.duration_ledgers])
-  const membershipStatusLabel = passExpiryMs
-    ? `Active until ${formatTimestampRelative(passExpiryMs)}`
-    : membership.status === 'active'
-      ? 'Awaiting sync from chain'
-      : 'Activate your pass to unlock gated content'
+  type MembershipStatusDescriptor = {
+    variant: 'active' | 'syncing' | 'inactive'
+    label: string
+    description?: string
+    icon: LucideIcon
+    spinning?: boolean
+  }
+
+  const membershipStatus = useMemo<MembershipStatusDescriptor | null>(() => {
+    if (isAdmin) return null
+
+    if (membership.status !== 'active') {
+      return {
+        variant: 'inactive',
+        label: 'No active LumenPass detected.',
+        description: 'Activate your pass to unlock gated content.',
+        icon: AlertCircle
+      }
+    }
+
+    if (passExpiryMs && membershipExpiryLabel) {
+      return {
+        variant: 'active',
+        label: `Membership active through ${membershipExpiryLabel}`,
+        description: 'You can keep participating until the pass expires.',
+        icon: CheckCircle2
+      }
+    }
+
+    return {
+      variant: 'syncing',
+      label: isResolvingExpiry
+        ? 'Pass confirmed. Syncing expiry with Stellar…'
+        : 'Waiting for pass expiry from chain…',
+      description:
+        'This usually finalizes once Horizon confirms the latest ledger.',
+      icon: Loader2,
+      spinning: true
+    }
+  }, [
+    isAdmin,
+    isResolvingExpiry,
+    membership.status,
+    membershipExpiryLabel,
+    passExpiryMs
+  ])
+
+  const membershipStatusTone = useMemo(() => {
+    switch (membershipStatus?.variant) {
+      case 'active':
+        return {
+          bg: 'bg-emerald-500/10',
+          icon: 'text-emerald-500'
+        }
+      case 'syncing':
+        return {
+          bg: 'bg-amber-500/10',
+          icon: 'text-amber-500'
+        }
+      case 'inactive':
+      default:
+        return {
+          bg: 'bg-rose-500/10',
+          icon: 'text-rose-500'
+        }
+    }
+  }, [membershipStatus?.variant])
+  const MembershipStatusIcon = membershipStatus?.icon
 
   return (
     <div className='space-y-8'>
@@ -253,31 +332,51 @@ export function GroupAboutSection() {
       />
 
       <div className='grid gap-4 md:grid-cols-2'>
-        <div className='rounded-lg border border-border bg-card p-5'>
-          <div className='space-y-3'>
-            <p className='text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
-              Membership status
-            </p>
-            <p className='font-medium text-foreground'>{membershipStatusLabel}</p>
-            {paymentExplorerUrl ? (
-              <a
-                href={paymentExplorerUrl}
-                target='_blank'
-                rel='noopener noreferrer'
-                className='inline-flex items-center gap-1 text-xs font-medium text-primary underline decoration-dotted underline-offset-4'
-              >
-                Last renewal receipt
-                <ExternalLink className='h-3 w-3' />
-              </a>
-            ) : null}
+        {membershipStatus && MembershipStatusIcon ? (
+          <div className='rounded-lg border border-border bg-card p-5'>
+            <div className='space-y-3'>
+              <p className='text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
+                Membership status
+              </p>
+              <div className='flex items-start gap-3'>
+                <span
+                  className={`mt-0.5 flex h-10 w-10 items-center justify-center rounded-full ${membershipStatusTone.bg}`}
+                >
+                  <MembershipStatusIcon
+                    className={`h-5 w-5 ${membershipStatusTone.icon} ${membershipStatus.spinning ? 'animate-spin' : ''}`}
+                  />
+                </span>
+                <div className='space-y-1'>
+                  <p className='font-medium text-foreground'>
+                    {membershipStatus.label}
+                  </p>
+                  {membershipStatus.description ? (
+                    <p className='text-sm text-muted-foreground'>
+                      {membershipStatus.description}
+                    </p>
+                  ) : null}
+                  {paymentExplorerUrl ? (
+                    <a
+                      href={paymentExplorerUrl}
+                      target='_blank'
+                      rel='noopener noreferrer'
+                      className='inline-flex items-center gap-1 text-xs font-medium text-primary underline decoration-dotted underline-offset-4'
+                    >
+                      Last renewal receipt
+                      <ExternalLink className='h-3 w-3' />
+                    </a>
+                  ) : null}
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
+        ) : null}
         <div className='rounded-lg border border-border bg-card p-5'>
           <div className='space-y-3'>
             <p className='text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
               LumenPass contract
             </p>
-            <p className='font-mono text-sm text-foreground break-all'>
+            <p className='break-all font-mono text-sm text-foreground'>
               {membershipContractId || 'Not configured'}
             </p>
             <p className='text-sm text-muted-foreground'>

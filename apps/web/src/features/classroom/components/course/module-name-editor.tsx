@@ -65,7 +65,7 @@ export const ModuleNameEditor = ({
           onBlur={disableEditing}
           onKeyDown={onKeyDown}
           value={value}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
             onInput(e.target.value)
           }
           className='text-md w-full break-words bg-transparent text-center font-semibold text-foreground outline-none'

@@ -16,7 +16,8 @@
     "apps/*"
   ],
   "devDependencies": {
-    "concurrently": "^9.2.1"
+    "concurrently": "^9.2.1",
+    "eslint": "8.57.0"
   },
   "dependencies": {
     "react": "18.3.1",

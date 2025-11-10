@@ -3,12 +3,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { zodResolver } from '@hookform/resolvers/zod'
+import { StrKey } from '@stellar/stellar-sdk'
 import { useMutation } from 'convex/react'
 import { Plus, RefreshCcw, Trash2 } from 'lucide-react'
 import { useFieldArray, useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
-import { StrKey } from '@stellar/stellar-sdk'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -31,17 +31,12 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { api } from '@/convex/_generated/api'
 import type { Doc } from '@/convex/_generated/dataModel'
-import { useAppRouter } from '@/hooks/use-app-router'
 import { useStellarWallet } from '@/hooks/use-stellar-wallet'
-import {
-  MEMBERSHIP_DURATION_SECONDS,
-  MEMBERSHIP_TRANSFER_COOLDOWN_SECONDS,
-  SETTLEMENT_TOKEN_SYMBOL
-} from '@/lib/config'
+import { SETTLEMENT_TOKEN_SYMBOL } from '@/lib/config'
+import { formatSettlementToken } from '@/lib/settlement-token'
+import { getConfig as getLumenPassConfig } from '@/lib/stellar/lumen-pass-service'
 import { formatTimestampRelative } from '@/lib/time'
 import { cn } from '@/lib/utils'
-import { getConfig as getLumenPassConfig } from '@/lib/stellar/lumen-pass-service'
-import { formatSettlementToken } from '@/lib/settlement-token'
 
 import { GroupMediaFields } from './group-media-fields'
 import { useGroupContext } from '../context/group-context'
@@ -197,7 +192,6 @@ export function GroupSettingsForm({ group }: GroupSettingsFormProps) {
   } = useRenewSubscription()
   const [contractConfig, setContractConfig] =
     useState<Awaited<ReturnType<typeof getLumenPassConfig>>>(null)
-  const router = useAppRouter()
   const ownerAddress = owner?.walletAddress?.toUpperCase() ?? null
 
   const initialThumbnailSource = normalizeMediaInput(

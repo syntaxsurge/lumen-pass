@@ -25,8 +25,7 @@ export function HeaderUtilityMenu() {
   const {
     value: settlementBalance,
     isLoading: isBalanceLoading,
-    isError: isBalanceError,
-    isSupportedChain
+    isError: isBalanceError
   } = useSettlementTokenBalance({ address })
 
   const balanceText = useMemo(() => {
@@ -39,25 +38,14 @@ export function HeaderUtilityMenu() {
     }
     if (isBalanceError) return 'Unavailable'
     return `0 ${SETTLEMENT_TOKEN_SYMBOL}`
-  }, [
-    isBalanceError,
-    isBalanceLoading,
-    isConnected,
-    isSupportedChain,
-    settlementBalance
-  ])
+  }, [isBalanceError, isBalanceLoading, isConnected, settlementBalance])
 
   const balanceHint = useMemo(() => {
     if (!isConnected) return 'Connect your wallet to view settlement funds.'
     if (isBalanceError) return 'Unable to sync balance right now.'
     if (isBalanceLoading) return 'Fetching the latest balance...'
     return `${SETTLEMENT_TOKEN_SYMBOL} balance reflects the connected Stellar wallet.`
-  }, [
-    isBalanceError,
-    isBalanceLoading,
-    isConnected,
-    isSupportedChain
-  ])
+  }, [isBalanceError, isBalanceLoading, isConnected])
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>

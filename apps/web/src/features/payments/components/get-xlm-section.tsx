@@ -16,9 +16,11 @@ export function GetXlmSection() {
             Get {SETTLEMENT_TOKEN_SYMBOL}
           </h2>
           <p className='mt-2 max-w-2xl text-sm text-muted-foreground'>
-            Use Stellar tools to fund your Testnet account with {SETTLEMENT_TOKEN_SYMBOL}
-            before managing invoices, payouts, and goals. The link opens in a new
-            tab so you can follow the on-chain flow with your connected wallet.
+            Use Stellar tools to fund your Testnet account with{' '}
+            {SETTLEMENT_TOKEN_SYMBOL}
+            before managing invoices, payouts, and goals. The link opens in a
+            new tab so you can follow the on-chain flow with your connected
+            wallet.
           </p>
           <p className='max-w-2xl text-sm text-muted-foreground'>
             Start from the{' '}

@@ -1,8 +1,15 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import '@blocknote/core/fonts/inter.css'
+import '@blocknote/mantine/style.css'
+
+import { useCallback, useEffect, useState } from 'react'
+
+import { BlockNoteView } from '@blocknote/mantine'
+import { useCreateBlockNote } from '@blocknote/react'
 import { useMutation } from 'convex/react'
 import { AlertOctagon } from 'lucide-react'
+import { useTheme } from 'next-themes'
 import { toast } from 'sonner'
 
 import { api } from '@/convex/_generated/api'
@@ -18,10 +25,26 @@ type GroupDescriptionEditorProps = {
 
 const MAX_LENGTH = 40_000
 
+function isBlockNoteBlocks(value: unknown): boolean {
+  if (!Array.isArray(value)) return false
+  // Very light validation: array of objects with a string `type` key
+  return value.every(
+    (item: unknown) =>
+      item !== null &&
+      typeof item === 'object' &&
+      typeof (item as Record<string, unknown>).type === 'string'
+  )
+}
+
 function parseContent(raw?: string) {
   if (!raw) return undefined
   try {
-    return JSON.parse(raw)
+    const parsed = JSON.parse(raw)
+    // Only pass through if the stored value looks like BlockNote blocks.
+    if (isBlockNoteBlocks(parsed)) return parsed
+    // Older entries may store a different shape (e.g. { markdown: string }).
+    // In that case, fall back to empty initial content to avoid runtime errors.
+    return undefined
   } catch (error) {
     console.warn('Failed to parse group description', error)
     return undefined
@@ -36,14 +59,19 @@ export function GroupDescriptionEditor({
 }: GroupDescriptionEditorProps) {
   const { address } = useWalletAccount()
   const updateDescription = useMutation(api.groups.updateDescription)
+  const { resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null)
+
+  const editor = useCreateBlockNote({
+    initialContent: parseContent(initialContent)
+  })
 
   const handlePersist = useCallback(() => {
     if (!editable) return
     if (!address) return
-    const value = textareaRef.current?.value ?? ''
-    const serialized = JSON.stringify({ markdown: value })
+    if (!editor.document) return
+
+    const serialized = JSON.stringify(editor.document, null, 2)
 
     if (serialized.length > MAX_LENGTH) {
       toast.error('Description is too long. Not saved.', {
@@ -60,29 +88,21 @@ export function GroupDescriptionEditor({
     }).catch(() => {
       toast.error('Unable to save changes. Please retry.')
     })
-  }, [address, editable, groupId, updateDescription])
+  }, [address, editable, editor.document, groupId, updateDescription])
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
+  const blocknoteTheme = mounted && resolvedTheme === 'dark' ? 'dark' : 'light'
+
   return (
-    <textarea
-      ref={textareaRef}
-      defaultValue={parseContent(initialContent)?.markdown ?? ''}
-      onChange={handlePersist as any}
-      disabled={!editable}
+    <BlockNoteView
+      editor={editor}
+      editable={editable}
+      theme={blocknoteTheme}
+      onChange={handlePersist}
       className={className}
-      rows={12}
-      style={{
-        width: '100%',
-        background: 'transparent',
-        color: 'inherit',
-        border: '1px solid rgba(148,163,184,0.4)',
-        borderRadius: 12,
-        padding: 12,
-        fontFamily: 'system-ui, sans-serif'
-      }}
     />
   )
 }

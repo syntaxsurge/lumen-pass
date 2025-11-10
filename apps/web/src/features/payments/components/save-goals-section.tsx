@@ -3,17 +3,9 @@
 import { useMemo, useState } from 'react'
 
 import { useMutation, useQuery } from 'convex/react'
+import { Activity, Loader2, Plus, TrendingDown, Trash2 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
-
-import {
-  Activity,
-  Loader2,
-  Plus,
-  TrendingDown,
-  TrendingUp,
-  Trash2
-} from 'lucide-react'
 
 import {
   AlertDialog,
@@ -424,8 +416,8 @@ function GoalCard({ goal }: { goal: GoalDoc }) {
               <AlertDialogHeader>
                 <AlertDialogTitle>Delete this savings goal?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This will permanently remove "{goal.name}" and all its activity
-                  history. This action cannot be undone.
+                  This will permanently remove "{goal.name}" and all its
+                  activity history. This action cannot be undone.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -586,7 +578,8 @@ export function SaveGoalsSection() {
               Savings goal studio
             </h2>
             <p className='max-w-2xl text-sm text-muted-foreground'>
-              Track how much XLM you have earmarked for upcoming expenses while funds stay in your wallet.
+              Track how much XLM you have earmarked for upcoming expenses while
+              funds stay in your wallet.
             </p>
           </div>
           <Dialog open={openCreate} onOpenChange={setOpenCreate}>
@@ -600,7 +593,8 @@ export function SaveGoalsSection() {
               <DialogHeader>
                 <DialogTitle>Create savings goal</DialogTitle>
                 <DialogDescription>
-                  Define a target amount, optional date, and notes to organize future payouts.
+                  Define a target amount, optional date, and notes to organize
+                  future payouts.
                 </DialogDescription>
               </DialogHeader>
               <Form {...form}>
@@ -678,7 +672,7 @@ export function SaveGoalsSection() {
                     )}
                   />
 
-                  <DialogFooter className='md:col-span-2 flex items-center justify-end'>
+                  <DialogFooter className='flex items-center justify-end md:col-span-2'>
                     <Button type='submit' disabled={isSubmitting}>
                       {isSubmitting ? 'Creating goal...' : 'Create goal'}
                     </Button>

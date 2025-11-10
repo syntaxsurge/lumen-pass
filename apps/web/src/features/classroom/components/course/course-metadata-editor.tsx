@@ -352,7 +352,9 @@ export function CourseMetadataEditor({
           </label>
           <Tabs
             value={thumbnailTab}
-            onValueChange={(value: string) => setThumbnailTab(value as 'upload' | 'link')}
+            onValueChange={(value: string) =>
+              setThumbnailTab(value as 'upload' | 'link')
+            }
             className='space-y-3'
           >
             <TabsList className='grid w-full grid-cols-2'>
