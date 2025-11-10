@@ -81,12 +81,18 @@ export async function submitNativePaymentViaWallet({
     if (typeof signedRaw === 'string') return signedRaw.trim()
     const obj = signedRaw as any
     const candidate =
-      obj?.signedXDR || obj?.signedTx || obj?.envelope_xdr || obj?.tx || obj?.xdr
+      obj?.signedTxXdr ??
+      obj?.signedXDR ??
+      obj?.signed_xdr ??
+      obj?.envelope_xdr ??
+      obj?.signedTx ??
+      obj?.tx ??
+      obj?.xdr
     return typeof candidate === 'string' ? candidate.trim() : ''
   })()
 
-  if (!signedBase64 || /\s/.test(signedBase64) === false) {
-    // continue; some wallets return compact base64 without spaces
+  if (!signedBase64) {
+    throw new Error('Wallet returned no signed XDR payload')
   }
 
   // First, try the SDK submit path which validates structure client-side.
@@ -107,6 +113,12 @@ export async function submitNativePaymentViaWallet({
     const res = await fetch(endpoint, { method: 'POST', headers, body })
     const json = await res.json().catch(() => ({}))
     if (!res.ok) {
+      const extras = (json as any)?.extras
+      console.error('[horizon-submit]', {
+        envelope_xdr: extras?.envelope_xdr,
+        result_codes: extras?.result_codes,
+        result_xdr: extras?.result_xdr
+      })
       const reason =
         (json && (json.detail || json.title || json.status)) || 'submit_failed'
       throw new Error(`Horizon submit failed: ${reason}`)
