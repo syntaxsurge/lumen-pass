@@ -16,10 +16,8 @@ import {
   parseSettlementTokenAmount,
   formatSettlementToken
 } from '@/lib/settlement-token'
-import {
-  submitNativePaymentViaWallet,
-  formatStroopsAsDecimal
-} from '@/lib/stellar/paylink-service'
+import { formatStroopsAsDecimal } from '@/lib/stellar/paylink-service'
+import { STELLAR_NETWORK_PASSPHRASE } from '@/lib/stellar/config'
 import { SETTLEMENT_TOKEN_SYMBOL } from '@/lib/config'
 import { formatTimestampRelative } from '@/lib/time'
 
@@ -138,27 +136,38 @@ export function PayPageClient({
       toast.error('Enter a valid amount before paying.')
       return
     }
-    if (!wallet.signTransaction) {
-      toast.error('Wallet must support transaction signing.')
-      return
-    }
     try {
       setSending(true)
-      const txHash = await submitNativePaymentViaWallet({
-        publicKey: wallet.address,
-        destination: paylink.receivingAddress,
-        amount: amountStroops,
-        memo: normalizeMemo(),
-        signTransaction: wallet.signTransaction
-      })
-      toast.success('Payment submitted on Stellar.', {
-        description: txHash
-      })
+      if (wallet.signTransaction) {
+        // Prefer in-app signing with the connected Wallets Kit instance
+        const { submitNativePaymentViaWallet } = await import(
+          '@/lib/stellar/paylink-service'
+        )
+        const txHash = await submitNativePaymentViaWallet({
+          publicKey: wallet.address,
+          destination: paylink.receivingAddress,
+          amount: amountStroops,
+          memo: normalizeMemo(),
+          signTransaction: wallet.signTransaction
+        })
+        toast.success('Payment submitted on Stellar.', {
+          description: txHash
+        })
+      } else {
+        // Fallback to SEP-7 if no signer function is available
+        const amountDecimal = formatStroopsAsDecimal(amountStroops)
+        const params = new URLSearchParams()
+        params.set('destination', paylink.receivingAddress)
+        params.set('amount', amountDecimal)
+        const memo = normalizeMemo()
+        if (memo) params.set('memo', `TEXT:${memo.slice(0, 28)}`)
+        params.set('network_passphrase', STELLAR_NETWORK_PASSPHRASE)
+        const url = `web+stellar:pay?${params.toString()}`
+        window.location.href = url
+      }
     } catch (error) {
       console.error(error)
-      toast.error(
-        error instanceof Error ? error.message : 'Unable to submit payment.'
-      )
+      toast.error('Unable to trigger wallet payment. Please try again.')
     } finally {
       setSending(false)
     }

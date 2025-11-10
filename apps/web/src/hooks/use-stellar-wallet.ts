@@ -12,10 +12,12 @@ export function useStellarWallet() {
     if (!context.kit) return null
     return async (xdr: string) => {
       return context.kit!.signTransaction(xdr, {
-        networkPassphrase: STELLAR_NETWORK_PASSPHRASE
+        networkPassphrase: STELLAR_NETWORK_PASSPHRASE,
+        // Some wallets require explicit account selection for signatures
+        accountToSign: context.address ?? undefined
       })
     }
-  }, [context.kit])
+  }, [context.address, context.kit])
 
   return {
     address: context.address,
@@ -27,4 +29,3 @@ export function useStellarWallet() {
     signTransaction
   }
 }
-

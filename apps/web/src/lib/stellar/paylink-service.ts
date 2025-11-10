@@ -72,11 +72,45 @@ export async function submitNativePaymentViaWallet({
   }
 
   const tx = builder.setTimeout(180).build()
-  const signedXdr = await signTransaction(tx.toEnvelope().toXDR('base64'))
-  const signed = TransactionBuilder.fromXDR(
-    signedXdr,
-    STELLAR_NETWORK_PASSPHRASE
-  )
-  const resp = await server.submitTransaction(signed)
-  return resp.hash
+  // Provide the transaction envelope (base64) to the wallet
+  const unsignedBase64 = tx.toEnvelope().toXDR('base64')
+  const signedRaw = await signTransaction(unsignedBase64)
+
+  // Normalize the wallet response into a base64 envelope string.
+  const signedBase64 = (() => {
+    if (typeof signedRaw === 'string') return signedRaw.trim()
+    const obj = signedRaw as any
+    const candidate =
+      obj?.signedXDR || obj?.signedTx || obj?.envelope_xdr || obj?.tx || obj?.xdr
+    return typeof candidate === 'string' ? candidate.trim() : ''
+  })()
+
+  if (!signedBase64 || /\s/.test(signedBase64) === false) {
+    // continue; some wallets return compact base64 without spaces
+  }
+
+  // First, try the SDK submit path which validates structure client-side.
+  try {
+    const signed = TransactionBuilder.fromXDR(
+      signedBase64,
+      STELLAR_NETWORK_PASSPHRASE
+    )
+    const resp = await server.submitTransaction(signed)
+    return resp.hash
+  } catch (_) {
+    // Fallback: post to Horizon directly
+    const endpoint = `${STELLAR_HORIZON_URL.replace(/\/$/, '')}/transactions`
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/x-www-form-urlencoded'
+    }
+    const body = new URLSearchParams({ tx: signedBase64 })
+    const res = await fetch(endpoint, { method: 'POST', headers, body })
+    const json = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      const reason =
+        (json && (json.detail || json.title || json.status)) || 'submit_failed'
+      throw new Error(`Horizon submit failed: ${reason}`)
+    }
+    return (json as any).hash as string
+  }
 }
