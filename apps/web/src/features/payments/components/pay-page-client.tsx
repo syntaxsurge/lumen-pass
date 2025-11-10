@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { useQuery } from 'convex/react'
 import { toast } from 'sonner'
@@ -12,7 +12,15 @@ import { Separator } from '@/components/ui/separator'
 import { api } from '@/convex/_generated/api'
 import type { Doc } from '@/convex/_generated/dataModel'
 import { useStellarWallet } from '@/hooks/use-stellar-wallet'
-import { formatSettlementToken } from '@/lib/settlement-token'
+import {
+  parseSettlementTokenAmount,
+  formatSettlementToken
+} from '@/lib/settlement-token'
+import {
+  submitNativePaymentViaWallet,
+  formatStroopsAsDecimal
+} from '@/lib/stellar/paylink-service'
+import { SETTLEMENT_TOKEN_SYMBOL } from '@/lib/config'
 import { formatTimestampRelative } from '@/lib/time'
 
 type PayPageClientProps = {
@@ -57,6 +65,25 @@ export function PayPageClient({
     return 'Flexible amount'
   }, [expectedAmount, invoice])
 
+  const derivedDefaultAmount = useMemo(() => {
+    try {
+      if (invoice) return formatStroopsAsDecimal(BigInt(invoice.totalAmount))
+      if (expectedAmount) return formatStroopsAsDecimal(BigInt(expectedAmount))
+    } catch {
+      return ''
+    }
+    return ''
+  }, [expectedAmount, invoice])
+
+  const [amountInput, setAmountInput] = useState(derivedDefaultAmount)
+  const [sending, setSending] = useState(false)
+
+  useEffect(() => {
+    if (derivedDefaultAmount) {
+      setAmountInput(derivedDefaultAmount)
+    }
+  }, [derivedDefaultAmount])
+
   if (paylink === undefined) {
     return (
       <div className='rounded-2xl border border-border/70 bg-card/80 p-10 text-center text-sm text-muted-foreground'>
@@ -80,6 +107,60 @@ export function PayPageClient({
     } catch (error) {
       console.error(error)
       toast.error('Unable to copy right now.')
+    }
+  }
+
+  const normalizeMemo = () => {
+    if (invoice?.number) return invoice.number
+    if (invoiceSlug) return invoiceSlug
+    return undefined
+  }
+
+  const handleWalletPay = async () => {
+    if (!paylink) {
+      toast.error('Pay handle unavailable.')
+      return
+    }
+    if (!wallet.address) {
+      wallet.connect()
+      return
+    }
+    const amountStroops = (() => {
+      if (invoice) {
+        return BigInt(invoice.totalAmount)
+      }
+      if (amountInput) {
+        return parseSettlementTokenAmount(amountInput)
+      }
+      return null
+    })()
+    if (!amountStroops || amountStroops <= 0n) {
+      toast.error('Enter a valid amount before paying.')
+      return
+    }
+    if (!wallet.signTransaction) {
+      toast.error('Wallet must support transaction signing.')
+      return
+    }
+    try {
+      setSending(true)
+      const txHash = await submitNativePaymentViaWallet({
+        publicKey: wallet.address,
+        destination: paylink.receivingAddress,
+        amount: amountStroops,
+        memo: normalizeMemo(),
+        signTransaction: wallet.signTransaction
+      })
+      toast.success('Payment submitted on Stellar.', {
+        description: txHash
+      })
+    } catch (error) {
+      console.error(error)
+      toast.error(
+        error instanceof Error ? error.message : 'Unable to submit payment.'
+      )
+    } finally {
+      setSending(false)
     }
   }
 
@@ -163,6 +244,48 @@ export function PayPageClient({
           <Button type='button' onClick={() => wallet.connect()}>
             Connect wallet
           </Button>
+        )}
+      </div>
+
+      <div className='space-y-4 rounded-2xl border border-border/70 bg-background/70 p-4'>
+        <div className='flex flex-col gap-1'>
+          <p className='text-sm font-semibold text-foreground'>
+            Pay with your connected wallet
+          </p>
+          <p className='text-xs text-muted-foreground'>
+            LumenPass will build a native XLM payment transaction and submit it
+            through your wallet kit. Amounts include {SETTLEMENT_TOKEN_SYMBOL}{' '}
+            (7 decimals).
+          </p>
+        </div>
+        <div className='flex flex-col gap-3 sm:flex-row sm:items-center'>
+          <Input
+            type='text'
+            value={amountInput}
+            disabled={Boolean(invoice)}
+            onChange={event => setAmountInput(event.target.value)}
+            placeholder={`Amount in ${SETTLEMENT_TOKEN_SYMBOL}`}
+            className='sm:flex-1'
+          />
+          <Button
+            type='button'
+            onClick={handleWalletPay}
+            disabled={sending}
+            className='w-full sm:w-auto'
+          >
+            {wallet.address ? 'Pay with wallet' : 'Connect wallet'}
+          </Button>
+        </div>
+        {invoice ? (
+          <p className='text-xs text-muted-foreground'>
+            Amount locked by invoice #{invoice.number}. Use your connected
+            wallet to settle automatically.
+          </p>
+        ) : (
+          <p className='text-xs text-muted-foreground'>
+            Enter any XLM amount. A memo will be attached so the creator can
+            reconcile the transaction.
+          </p>
         )}
       </div>
     </div>
