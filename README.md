@@ -122,10 +122,7 @@ BADGE_VERSION=0.1.2 bash scripts/deploy_testnet.sh
 npm run dev
 ```
 
-The root script runs:
-
-1. `stellar scaffold watch --build-clients` — rebuilds contracts and regenerates TS clients in `packages/*`.
-2. `next dev` for the frontend (http://localhost:3000).
+This starts the Next.js dev server (http://localhost:3000). Whenever you touch a contract, re-run `npm run build --workspace=split_router` (or the relevant package) to refresh the generated client, or run `npm run contracts:watch` in a separate terminal if you prefer automatic rebuilds.
 
 Open `/payments` to use the dashboard:
 

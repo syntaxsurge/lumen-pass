@@ -4,7 +4,8 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "dev": "concurrently \"stellar scaffold watch --build-clients\" \"npm run dev --workspace=@lumen-pass/web\"",
+    "dev": "npm run dev --workspace=@lumen-pass/web",
+    "contracts:watch": "stellar scaffold watch --build-clients",
     "start": "npm run start --workspace=@lumen-pass/web",
     "build": "stellar scaffold build && npm run build --workspace=@lumen-pass/web",
     "lint": "npm run lint --workspace=@lumen-pass/web",

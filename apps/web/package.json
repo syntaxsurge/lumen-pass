@@ -60,6 +60,9 @@
     "@tiptap/extension-history": "^2.7.6",
     "lumen_pass": "file:../../packages/lumen_pass",
     "invoice_registry": "file:../../packages/invoice_registry",
+    "split_router": "file:../../packages/split_router",
+    "marketplace": "file:../../packages/marketplace",
+    "registrar": "file:../../packages/registrar",
     "zod": "^3.22.4"
   },
   "devDependencies": {

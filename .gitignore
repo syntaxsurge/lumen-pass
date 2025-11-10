@@ -40,5 +40,15 @@ lerna-debug.log*
 
 # generated contract clients
 packages/*
-# if you have other workspace packages, add them here
+# keep committed contract clients
 !packages/.gitkeep
+!packages/lumen_pass
+!packages/lumen_pass/**
+!packages/invoice_registry
+!packages/invoice_registry/**
+!packages/marketplace
+!packages/marketplace/**
+!packages/registrar
+!packages/registrar/**
+!packages/split_router
+!packages/split_router/**
