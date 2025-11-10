@@ -108,6 +108,11 @@ NEXT_PUBLIC_BADGE_CONTRACT_ID="CD5H..."
 NEXT_PUBLIC_NATIVE_ASSET_CONTRACT_ID="CDLZ..."
 ```
 
+Optional overrides:
+
+- `NEXT_PUBLIC_STELLAR_EXPLORER_BASE_URL` — change the explorer host (defaults to `https://stellar.expert/explorer`).
+- `NEXT_PUBLIC_STELLAR_EXPLORER_NETWORK` — force the explorer network slug (`testnet`, `public`, etc.) instead of deriving it from the passphrase.
+
 If you redeploy a single contract (e.g., update badges), bump its `BADGE_VERSION` when running the script:
 
 ```bash

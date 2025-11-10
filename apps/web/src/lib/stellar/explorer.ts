@@ -1,7 +1,15 @@
-import { STELLAR_HORIZON_URL } from './config'
+import {
+  STELLAR_EXPLORER_BASE_URL,
+  STELLAR_EXPLORER_NETWORK,
+  STELLAR_HORIZON_URL
+} from './config'
 
 function normalizeBaseUrl() {
   return STELLAR_HORIZON_URL.replace(/\/$/, '')
+}
+
+function normalizeExplorerBase() {
+  return STELLAR_EXPLORER_BASE_URL.replace(/\/$/, '')
 }
 
 export function getTransactionUrl(hash?: string | null) {
@@ -16,5 +24,5 @@ export function getAccountUrl(address?: string | null) {
 
 export function getContractUrl(contractId?: string | null) {
   if (!contractId) return null
-  return `${normalizeBaseUrl()}/contract/${contractId}`
+  return `${normalizeExplorerBase()}/${STELLAR_EXPLORER_NETWORK}/contract/${contractId}`
 }

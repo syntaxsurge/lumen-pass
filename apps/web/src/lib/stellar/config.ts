@@ -13,6 +13,10 @@ export const STELLAR_NETWORK_PASSPHRASE =
   process.env.NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE ||
   'Test SDF Network ; September 2015'
 
+export const STELLAR_EXPLORER_BASE_URL =
+  process.env.NEXT_PUBLIC_STELLAR_EXPLORER_BASE_URL ||
+  'https://stellar.expert/explorer'
+
 export const LUMENPASS_CONTRACT_ID =
   process.env.NEXT_PUBLIC_LUMENPASS_CONTRACT_ID || ''
 
@@ -40,3 +44,16 @@ function normalizeWalletNetwork(): string {
 
 export const STELLAR_WALLET_NETWORK = normalizeWalletNetwork()
 
+function deriveExplorerNetwork(): string {
+  const fromEnv = process.env.NEXT_PUBLIC_STELLAR_EXPLORER_NETWORK?.trim()
+  if (fromEnv) return fromEnv
+
+  const passphrase = STELLAR_NETWORK_PASSPHRASE.toLowerCase()
+  if (passphrase.includes('test')) return 'testnet'
+  if (passphrase.includes('standalone') || passphrase.includes('local')) {
+    return 'localnet'
+  }
+  return 'public'
+}
+
+export const STELLAR_EXPLORER_NETWORK = deriveExplorerNetwork()
