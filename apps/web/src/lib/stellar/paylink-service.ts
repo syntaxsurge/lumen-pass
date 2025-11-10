@@ -72,7 +72,11 @@ export async function submitNativePaymentViaWallet({
   }
 
   const tx = builder.setTimeout(180).build()
-  const signedXdr = await signTransaction(tx.toXDR())
-  const resp = await server.submitTransactionXDR(signedXdr)
+  const signedXdr = await signTransaction(tx.toEnvelope().toXDR('base64'))
+  const signed = TransactionBuilder.fromXDR(
+    signedXdr,
+    STELLAR_NETWORK_PASSPHRASE
+  )
+  const resp = await server.submitTransaction(signed)
   return resp.hash
 }
