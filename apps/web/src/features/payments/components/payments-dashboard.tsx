@@ -1,14 +1,32 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import { useState } from 'react'
 
+import { Loader2, ShieldCheck, Wallet } from 'lucide-react'
+
+import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useWalletUser } from '@/hooks/use-wallet-user'
 
 import { InvoicesSection } from './invoices-section'
 import { PaylinksSection } from './paylinks-section'
 import { SaveGoalsSection } from './save-goals-section'
 import { StatusOverviewBanner, StatusSection } from './status-section'
 import { GetXlmSection } from './get-xlm-section'
+
+const LazyPayoutsSection = dynamic(
+  () => import('./payouts-section').then(mod => ({ default: mod.PayoutsSection })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className='flex items-center gap-2 rounded-2xl border border-border/60 bg-muted/20 p-6 text-sm text-muted-foreground'>
+        <Loader2 className='h-4 w-4 animate-spin text-primary' />
+        Preparing payouts module…
+      </div>
+    )
+  }
+)
 
 const TAB_ITEMS = [
   { value: 'paylinks', label: 'SatsPay Links' },
@@ -20,8 +38,17 @@ const TAB_ITEMS = [
 ] as const
 
 export function PaymentsDashboard() {
+  const wallet = useWalletUser()
   const [activeTab, setActiveTab] =
     useState<(typeof TAB_ITEMS)[number]['value']>('paylinks')
+
+  if (!wallet.isConnected) {
+    return <ConnectWalletGate status={wallet.status} onConnect={wallet.connect} />
+  }
+
+  if (!wallet.isUserReady) {
+    return <EnsuringWorkspace />
+  }
 
   return (
     <div className='relative min-h-screen overflow-hidden bg-gradient-to-b from-background via-background to-secondary/10'>
@@ -94,13 +121,7 @@ export function PaymentsDashboard() {
             </TabsContent>
 
             <TabsContent value='payouts' className='mt-0' forceMount>
-              {/* Payouts Section dynamically imported to avoid bundle bloat */}
-              {/* eslint-disable-next-line @next/next/no-sync-scripts */}
-              {/* The actual component is in payouts-section.tsx */}
-              {require('./payouts-section').PayoutsSection ? (
-                // eslint-disable-next-line @typescript-eslint/no-var-requires
-                require('./payouts-section').PayoutsSection()
-              ) : null}
+              <LazyPayoutsSection />
             </TabsContent>
 
             <TabsContent value='goals' className='mt-0' forceMount>
@@ -116,6 +137,69 @@ export function PaymentsDashboard() {
             </TabsContent>
           </div>
         </Tabs>
+      </div>
+    </div>
+  )
+}
+
+function ConnectWalletGate({
+  status,
+  onConnect
+}: {
+  status: string
+  onConnect: () => void
+}) {
+  const busy = status === 'connecting'
+  return (
+    <div className='flex min-h-screen items-center justify-center bg-gradient-to-b from-background via-background to-secondary/15 px-4'>
+      <div className='max-w-xl rounded-3xl border border-border/60 bg-card/70 p-10 text-center shadow-2xl shadow-primary/10 backdrop-blur'>
+        <div className='mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary'>
+          <Wallet className='h-8 w-8' />
+        </div>
+        <h1 className='text-3xl font-semibold text-foreground'>Connect your Stellar wallet</h1>
+        <p className='mt-3 text-base text-muted-foreground'>
+          Payments, invoices, and payouts are scoped to your wallet. Connect to your preferred
+          Stellar Wallet Kit option to continue.
+        </p>
+        <Button
+          size='lg'
+          className='mt-8 w-full gap-2 text-base'
+          onClick={onConnect}
+          disabled={busy}
+        >
+          {busy ? (
+            <>
+              <Loader2 className='h-4 w-4 animate-spin' /> Connecting…
+            </>
+          ) : (
+            <>
+              <Wallet className='h-4 w-4' /> Connect wallet
+            </>
+          )}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+function EnsuringWorkspace() {
+  return (
+    <div className='flex min-h-screen items-center justify-center bg-gradient-to-b from-background via-background to-secondary/15 px-4'>
+      <div className='flex max-w-lg items-center gap-4 rounded-3xl border border-border/60 bg-card/70 p-8 text-left shadow-2xl shadow-primary/10 backdrop-blur'>
+        <div className='rounded-2xl bg-primary/10 p-4 text-primary'>
+          <ShieldCheck className='h-10 w-10' />
+        </div>
+        <div>
+          <p className='text-lg font-semibold text-foreground'>Preparing your workspace…</p>
+          <p className='text-sm text-muted-foreground'>
+            Syncing your wallet identity with Convex so your paylinks, invoices, and payout
+            schedules load correctly.
+          </p>
+          <div className='mt-4 flex items-center gap-2 text-sm text-muted-foreground'>
+            <Loader2 className='h-4 w-4 animate-spin text-primary' />
+            Please wait a moment.
+          </div>
+        </div>
       </div>
     </div>
   )

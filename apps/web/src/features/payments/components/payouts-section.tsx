@@ -30,6 +30,7 @@ import { Input } from '@/components/ui/input'
 import { api } from '@/convex/_generated/api'
 import type { Doc, Id } from '@/convex/_generated/dataModel'
 import { useWalletAccount } from '@/hooks/use-wallet-account'
+import { useStellarWallet } from '@/hooks/use-stellar-wallet'
 import { SETTLEMENT_TOKEN_SYMBOL } from '@/lib/config'
 import { formatSettlementToken, parseSettlementTokenAmount } from '@/lib/settlement-token'
 import { executeSplit } from '@/lib/stellar/split-router-service'
@@ -43,6 +44,7 @@ type ScheduleForm = {
 
 export function PayoutsSection() {
   const { address } = useWalletAccount()
+  const stellarWallet = useStellarWallet()
   const schedules = useQuery(api.payouts.listSchedules, address ? { ownerAddress: address } : 'skip')
   const createSchedule = useMutation(api.payouts.createSchedule)
   const updateSchedule = useMutation(api.payouts.updateSchedule)
@@ -79,16 +81,15 @@ export function PayoutsSection() {
     if (amount <= 0n) return toast.error('Enter a positive amount')
     try {
       setBusy(true)
+      const signer = stellarWallet.signTransaction
+      if (!signer) throw new Error('Wallet not connected')
       const recipients = schedule.recipients.map(r => ({ address: r.address, shareBps: r.shareBps }))
-      const res = await executeSplit({ publicKey: address, signTransaction: async (x) => {
-        // sign via wallet kit (provided by useStellarWallet under the hood)
-        // this bridge uses useWalletAccount wrapper
-        // We reuse the Connect flow already in the app
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { signTransaction } = (await import('@/hooks/use-stellar-wallet')).useStellarWallet() as any
-        if (!signTransaction) throw new Error('Wallet not connected')
-        return signTransaction(x)
-      }, recipients, amount })
+      const res = await executeSplit({
+        publicKey: address,
+        signTransaction: signer,
+        recipients,
+        amount
+      })
       const txHash = (res as unknown as { hash?: string })?.hash ?? ''
       await recordExecution({ ownerAddress: address, scheduleId: schedule._id, txHash, totalAmount: amount.toString(), executedAt: Date.now() })
       toast.success('Payout executed')

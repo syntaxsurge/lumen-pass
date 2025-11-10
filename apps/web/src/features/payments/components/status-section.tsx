@@ -18,13 +18,6 @@ const RPC_CARDS = [
     explorerUrl: 'https://horizon-testnet.stellar.org',
     status: 'Operational',
     latency: '<250ms'
-  },
-  {
-    name: 'Quickstart (Docker)',
-    description: 'Local quickstart with --enable-soroban-rpc.',
-    explorerUrl: 'http://localhost:8000',
-    status: 'Operational',
-    latency: '<20ms'
   }
 ] as const
 
