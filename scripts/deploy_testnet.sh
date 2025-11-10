@@ -32,6 +32,20 @@ CREATOR_G=${CREATOR_G:-""}         # G... account that owns LumenPass
 PLATFORM_G=${PLATFORM_G:-""}        # Mandatory G... platform treasury
 REGISTRAR_OWNER_G=${REGISTRAR_OWNER_G:-""} # G... owner for Registrar
 
+# Small helper to keep env files fresh even if later steps fail
+update_env() {
+  local key=$1
+  local value=$2
+  local file=$3
+  if [ ! -f "$file" ]; then echo "Creating $file"; touch "$file"; fi
+  if grep -q "^$key=" "$file"; then
+    sed -i.bak "s|^$key=.*|$key=\"$value\"|" "$file"
+    rm -f "$file.bak"
+  else
+    echo "$key=\"$value\"" >> "$file"
+  fi
+}
+
 PRICE_STROOPS=${PRICE_STROOPS:-2500000}      # 0.25 XLM in stroops (7 decimals)
 DURATION_LEDGERS=${DURATION_LEDGERS:-17280}  # ~1 day at 5s/ledger; set to 17280 for 1 day
 FEE_BPS=${FEE_BPS:-250}                      # 2.5% platform fee
@@ -141,6 +155,31 @@ MARKETPLACE_ID=$(publish_deploy "$MARKET_WASM" marketplace "$MARKETPLACE_VERSION
 SPLIT_ID=$(publish_deploy "$SPLIT_WASM" split-router "$SPLIT_VERSION")
 BADGE_ID=$(publish_deploy "$BADGE_WASM" lumenpass-badges "$BADGE_VERSION")
 
+echo "==> Updating env file: $ENV_FILE"
+update_env NEXT_PUBLIC_LUMENPASS_CONTRACT_ID "$LUMEN_ID" "$ENV_FILE"
+update_env NEXT_PUBLIC_INVOICE_REGISTRY_CONTRACT_ID "$REGISTRY_ID" "$ENV_FILE"
+update_env NEXT_PUBLIC_REGISTRAR_CONTRACT_ID "$REGISTRAR_ID" "$ENV_FILE"
+update_env NEXT_PUBLIC_MARKETPLACE_CONTRACT_ID "$MARKETPLACE_ID" "$ENV_FILE"
+update_env NEXT_PUBLIC_SPLIT_ROUTER_CONTRACT_ID "$SPLIT_ID" "$ENV_FILE"
+update_env NEXT_PUBLIC_NATIVE_ASSET_CONTRACT_ID "$SAC_ID" "$ENV_FILE"
+update_env NEXT_PUBLIC_BADGE_CONTRACT_ID "$BADGE_ID" "$ENV_FILE"
+update_env NEXT_PUBLIC_PLATFORM_TREASURY_ADDRESS "$PLATFORM_G" "$ENV_FILE"
+
+invoke_allowing_init_skip() {
+  local label=$1
+  shift
+  if ! OUT=$("$@" 2>&1); then
+    if echo "$OUT" | grep -Eq 'Error\(Contract, #1\)|already initialized|UnreachableCodeReached'; then
+      echo "   ↳ $label already initialized; skipping"
+    else
+      echo "$OUT"
+      exit 1
+    fi
+  else
+    echo "$OUT"
+  fi
+}
+
 echo "==> Initializing contracts"
 # Attempt to derive missing addresses from local key aliases
 CREATOR_G=${CREATOR_G:-$(stellar keys address creator 2>/dev/null || echo "")}
@@ -152,7 +191,8 @@ if [[ -z "$REGISTRAR_OWNER_G" ]]; then echo "Set REGISTRAR_OWNER_G=G... and reru
 if [[ -z "${PLATFORM_G:-}" ]]; then echo "Set PLATFORM_G=G... (platform treasury) and rerun"; exit 1; fi
 
 echo "-- LumenPass.init (signed by creator)"
-stellar contract invoke --id "$LUMEN_ID" --network "$NETWORK" --source creator -- \
+invoke_allowing_init_skip "LumenPass" \
+  stellar contract invoke --id "$LUMEN_ID" --network "$NETWORK" --source creator -- \
   init \
   --creator "$CREATOR_G" \
   --token "$SAC_ID" \
@@ -162,41 +202,22 @@ stellar contract invoke --id "$LUMEN_ID" --network "$NETWORK" --source creator -
   --fee-bps "$FEE_BPS"
 
 echo "-- Registrar.init (signed by registrar_owner)"
-stellar contract invoke --id "$REGISTRAR_ID" --network "$NETWORK" --source registrar_owner -- \
+invoke_allowing_init_skip "Registrar" \
+  stellar contract invoke --id "$REGISTRAR_ID" --network "$NETWORK" --source registrar_owner -- \
   init --owner "$REGISTRAR_OWNER_G"
 
 echo "-- Marketplace.init"
-stellar contract invoke --id "$MARKETPLACE_ID" --network "$NETWORK" --source "$ACCOUNT_NAME" -- \
+invoke_allowing_init_skip "Marketplace" \
+  stellar contract invoke --id "$MARKETPLACE_ID" --network "$NETWORK" --source "$ACCOUNT_NAME" -- \
   init --platform "$PLATFORM_G" --fee-bps "$FEE_BPS"
 
 echo "-- Badges.init (signed by creator)"
-stellar contract invoke --id "$BADGE_ID" --network "$NETWORK" --source creator -- \
+invoke_allowing_init_skip "Badges" \
+  stellar contract invoke --id "$BADGE_ID" --network "$NETWORK" --source creator -- \
   init --owner "$CREATOR_G" --base-uri "https://lumenpass.app/badges" --name "LumenPass Badges" --symbol "LPB"
 
 echo "==> Local aliases registered"
 stellar contract alias ls | sed -n '1,40p'
-
-update_env() {
-  local key=$1
-  local value=$2
-  local file=$3
-  if [ ! -f "$file" ]; then echo "Creating $file"; touch "$file"; fi
-  if grep -q "^$key=" "$file"; then
-    sed -i.bak "s|^$key=.*|$key=\"$value\"|" "$file"
-  else
-    echo "$key=\"$value\"" >> "$file"
-  fi
-}
-
-echo "==> Updating env file: $ENV_FILE"
-update_env NEXT_PUBLIC_LUMENPASS_CONTRACT_ID "$LUMEN_ID" "$ENV_FILE"
-update_env NEXT_PUBLIC_INVOICE_REGISTRY_CONTRACT_ID "$REGISTRY_ID" "$ENV_FILE"
-update_env NEXT_PUBLIC_REGISTRAR_CONTRACT_ID "$REGISTRAR_ID" "$ENV_FILE"
-update_env NEXT_PUBLIC_MARKETPLACE_CONTRACT_ID "$MARKETPLACE_ID" "$ENV_FILE"
-update_env NEXT_PUBLIC_SPLIT_ROUTER_CONTRACT_ID "$SPLIT_ID" "$ENV_FILE"
-update_env NEXT_PUBLIC_NATIVE_ASSET_CONTRACT_ID "$SAC_ID" "$ENV_FILE"
-update_env NEXT_PUBLIC_BADGE_CONTRACT_ID "$BADGE_ID" "$ENV_FILE"
-update_env NEXT_PUBLIC_PLATFORM_TREASURY_ADDRESS "${PLATFORM_G}" "$ENV_FILE"
 
 cat <<EOF
 
