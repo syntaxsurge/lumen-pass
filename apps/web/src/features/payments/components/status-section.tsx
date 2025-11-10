@@ -26,11 +26,6 @@ const ORACLE_CARDS = [
     name: 'Pyth XLM/USD',
     description: 'Updated every few seconds; feeds UI conversions.',
     freshness: 'Fresh'
-  },
-  {
-    name: 'Pyth BTC/USD',
-    description: 'Used for showcase savings goals and analytics.',
-    freshness: 'Fresh'
   }
 ] as const
 
