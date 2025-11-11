@@ -26,8 +26,90 @@ import {
 import { useGroupContext } from '../context/group-context'
 import { formatGroupPriceLabel } from '../utils/price'
 
+function LeaveGroupButton() {
+  const { group, membership } = useGroupContext()
+  const { address, isConnected, connect } = useWalletAccount()
+  const leaveGroup = useMutation(api.groups.leave)
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [isWorking, setIsWorking] = useState(false)
+
+  const handleLeave = useCallback(async () => {
+    if (!isConnected || !address) {
+      connect()
+      return
+    }
+    setIsWorking(true)
+    try {
+      await leaveGroup({
+        groupId: group._id,
+        memberAddress: address,
+        passExpiresAt: membership.passExpiresAt ?? undefined
+      })
+      toast.success('You have left this group.')
+      setDialogOpen(false)
+    } catch (err) {
+      console.error(err)
+      toast.error('Unable to leave the group. Please try again.')
+    } finally {
+      setIsWorking(false)
+    }
+  }, [
+    address,
+    connect,
+    group._id,
+    isConnected,
+    leaveGroup,
+    membership.passExpiresAt
+  ])
+
+  return (
+    <>
+      <Button
+        type='button'
+        variant='outline'
+        className='h-10 px-6'
+        onClick={() => setDialogOpen(true)}
+      >
+        Leave group
+      </Button>
+      <Dialog
+        open={dialogOpen}
+        onOpenChange={(open: boolean) => setDialogOpen(open)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Leave {group.name}</DialogTitle>
+            <DialogDescription>
+              Leaving removes your access immediately. You can rejoin later if
+              you still have an active pass.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type='button'
+              variant='ghost'
+              onClick={() => setDialogOpen(false)}
+              disabled={isWorking}
+            >
+              Stay in group
+            </Button>
+            <Button
+              type='button'
+              variant='destructive'
+              onClick={handleLeave}
+              disabled={isWorking}
+            >
+              {isWorking ? 'Leaving…' : 'Confirm leave'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}
+
 export function JoinGroupButton() {
-  const { group, isOwner } = useGroupContext()
+  const { group, isOwner, isMember } = useGroupContext()
   const { address, isConnected, connect } = useWalletAccount()
   const stellar = useStellarWallet()
   const joinGroup = useMutation(api.groups.join)
@@ -90,6 +172,7 @@ export function JoinGroupButton() {
   ])
 
   if (isOwner) return null
+  if (isMember) return <LeaveGroupButton />
 
   return (
     <>
@@ -108,10 +191,10 @@ export function JoinGroupButton() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Join Group</DialogTitle>
+            <DialogTitle>Confirm membership</DialogTitle>
             <DialogDescription>
-              This will connect your Stellar wallet and activate membership via
-              the Soroban contract.
+              We will connect your Stellar wallet and activate your membership
+              using the LumenPass contract. Network fees apply.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -121,7 +204,7 @@ export function JoinGroupButton() {
               onClick={handleJoin}
               disabled={isWorking}
             >
-              {isWorking ? 'Processing…' : 'Confirm'}
+              {isWorking ? 'Processing…' : 'Pay and join'}
             </Button>
           </DialogFooter>
         </DialogContent>

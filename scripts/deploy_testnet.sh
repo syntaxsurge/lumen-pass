@@ -47,7 +47,8 @@ update_env() {
 }
 
 PRICE_STROOPS=${PRICE_STROOPS:-2500000}      # 0.25 XLM in stroops (7 decimals)
-DURATION_LEDGERS=${DURATION_LEDGERS:-17280}  # ~1 day at 5s/ledger; set to 17280 for 1 day
+# Default to 30 days at ~5s per ledger: 30 * 24 * 60 * 60 / 5 = 518400
+DURATION_LEDGERS=${DURATION_LEDGERS:-518400}
 FEE_BPS=${FEE_BPS:-250}                      # 2.5% platform fee
 
 need() { command -v "$1" >/dev/null 2>&1 || { echo "Missing $1"; exit 1; }; }
