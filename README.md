@@ -1,13 +1,11 @@
 # LumenPass · Soroban Membership + Marketplace Stack
 
-LumenPass is a Next.js + Soroban dApp that recreates the full CreatorBank workflow on Stellar:
-
 - **Memberships** — `contracts/lumen-pass` handles paid subscriptions using the native asset contract (SAC) and routes fees to the platform treasury.
 - **Invoices** — `contracts/invoice-registry` issues/marks invoices directly on Soroban.
 - **Marketplace** — `contracts/marketplace` lists/buys memberships with built-in platform fees.
 - **Registrar & Badges** — `contracts/registrar` maps human-readable handles to deployments, and `contracts/lumenpass-badges` mints creator badges.
 - **Split Router** — `contracts/split-router` pays collaborators in one transaction.
-- **Next.js Frontend** — `apps/web` mirrors the CreatorBank UI, integrates Stellar Wallets Kit, and uses generated Soroban clients.
+- **Next.js Frontend** — `apps/web` integrates Stellar Wallets Kit, and uses generated Soroban clients.
 
 The repo contains one command that builds every contract, deploys them to Testnet, initializes them, creates local aliases, and updates `apps/web/.env`.
 

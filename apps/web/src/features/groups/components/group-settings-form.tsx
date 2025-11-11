@@ -32,9 +32,17 @@ import { Textarea } from '@/components/ui/textarea'
 import { api } from '@/convex/_generated/api'
 import type { Doc } from '@/convex/_generated/dataModel'
 import { useStellarWallet } from '@/hooks/use-stellar-wallet'
-import { SETTLEMENT_TOKEN_SYMBOL } from '@/lib/config'
+import {
+  SETTLEMENT_TOKEN_SYMBOL,
+  getMembershipContractAddress,
+  getRegistrarOwnerAddress
+} from '@/lib/config'
 import { formatSettlementToken } from '@/lib/settlement-token'
 import { getConfig as getLumenPassConfig } from '@/lib/stellar/lumen-pass-service'
+import {
+  registerMapping,
+  resolveMapping
+} from '@/lib/stellar/registrar-service'
 import { formatTimestampRelative } from '@/lib/time'
 import { cn } from '@/lib/utils'
 
@@ -439,9 +447,139 @@ export function GroupSettingsForm({ group }: GroupSettingsFormProps) {
     }
   }
 
+  const [isRegistering, setIsRegistering] = useState(false)
+  const [registryState, setRegistryState] = useState<
+    | { status: 'checking' }
+    | { status: 'verified' }
+    | { status: 'unregistered' }
+    | { status: 'error'; message: string }
+  >({ status: 'checking' })
+
+  useEffect(() => {
+    let cancelled = false
+    async function check() {
+      if (!group.subscriptionId) {
+        if (!cancelled) setRegistryState({ status: 'unregistered' })
+        return
+      }
+      try {
+        const resolved = await resolveMapping(group.subscriptionId)
+        const match =
+          (resolved ?? '').trim().toUpperCase() ===
+          (getMembershipContractAddress()?.trim() ?? '').toUpperCase()
+        if (!cancelled)
+          setRegistryState({ status: match ? 'verified' : 'unregistered' })
+      } catch (_error) {
+        if (!cancelled)
+          setRegistryState({
+            status: 'error',
+            message: 'Unable to query registry'
+          })
+      }
+    }
+    check()
+    return () => {
+      cancelled = true
+    }
+  }, [group.subscriptionId])
+
+  const handleRegisterOnChain = async () => {
+    if (!address) {
+      toast.error('Connect your Stellar wallet to continue.')
+      return
+    }
+    if (!wallet.signTransaction) {
+      toast.error('Your wallet cannot sign transactions. Reconnect.')
+      return
+    }
+    if (!group.subscriptionId) {
+      toast.error('Missing Course ID. Save settings to generate one first.')
+      return
+    }
+    try {
+      setIsRegistering(true)
+      const registrarOwner = getRegistrarOwnerAddress()
+      const isOwner = registrarOwner && registrarOwner.toUpperCase() === address.toUpperCase()
+      let txHash: string | null = null
+      if (isOwner && wallet.signTransaction) {
+        const res = await registerMapping({
+          name: group.subscriptionId,
+          publicKey: address,
+          signTransaction: wallet.signTransaction
+        })
+        txHash = res.txHash
+      } else {
+        const res = await fetch('/api/registrar/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ courseId: group.subscriptionId })
+        })
+        const json = (await res.json()) as { txHash?: string; error?: string }
+        if (!res.ok) throw new Error(json.error || 'server_error')
+        txHash = json.txHash ?? null
+      }
+      toast.success('Registry updated on Stellar', {
+        description: txHash ?? undefined
+      })
+      setRegistryState({ status: 'verified' })
+    } catch (error) {
+      console.error(error)
+      let msg = error instanceof Error ? error.message : 'Unable to register on chain'
+      if (msg && /needsNonInvokerSigningBy/i.test(msg)) {
+        const owner = getRegistrarOwnerAddress()
+        msg = `Registrar owner signature required${owner ? ` (${owner})` : ''}. Connect the owner wallet.`
+      }
+      toast.error(msg)
+    } finally {
+      setIsRegistering(false)
+    }
+  }
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-6'>
+        <div className='rounded-lg border border-border bg-card p-4'>
+          <div className='flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between'>
+            <div>
+              <h3 className='text-sm font-semibold text-foreground'>
+                On-chain registration
+              </h3>
+              <p className='text-xs text-muted-foreground'>
+                {group.subscriptionId ? (
+                  <>
+                    Course ID:{' '}
+                    <span className='font-mono'>{group.subscriptionId}</span>
+                  </>
+                ) : (
+                  'Course ID will be generated on save.'
+                )}
+              </p>
+              <p className='text-xs text-muted-foreground'>
+                Status: {registryState.status === 'checking' && 'Checking…'}
+                {registryState.status === 'verified' && 'Verified'}
+                {registryState.status === 'unregistered' && 'Not registered'}
+                {registryState.status === 'error' && registryState.message}
+              </p>
+              <p className='text-xs text-muted-foreground'>
+                Registrar owner:{' '}
+                {getRegistrarOwnerAddress() ? (
+                  <span className='font-mono'>{getRegistrarOwnerAddress()}</span>
+                ) : (
+                  'Not configured'
+                )}
+              </p>
+            </div>
+            <div>
+              <Button
+                type='button'
+                onClick={handleRegisterOnChain}
+                disabled={isRegistering}
+              >
+                {isRegistering ? 'Registering…' : 'Register on Stellar'}
+              </Button>
+            </div>
+          </div>
+        </div>
         <div className={subscriptionCardClasses}>
           <div className='flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between'>
             <div className='space-y-1'>

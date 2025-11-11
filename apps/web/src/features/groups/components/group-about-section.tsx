@@ -18,7 +18,10 @@ import type { LucideIcon } from 'lucide-react'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useStellarWallet } from '@/hooks/use-stellar-wallet'
-import { getMembershipContractAddress } from '@/lib/config'
+import {
+  getMembershipContractAddress,
+  getRegistrarContractAddress
+} from '@/lib/config'
 import { formatSettlementToken } from '@/lib/settlement-token'
 import { getContractUrl, getTransactionUrl } from '@/lib/stellar/explorer'
 import { summarizeAccount } from '@/lib/stellar/format'
@@ -187,6 +190,43 @@ export function GroupAboutSection() {
     () => getMembershipContractAddress()?.trim() ?? '',
     []
   )
+  const [registryStatus, setRegistryStatus] = useState<
+    | { status: 'checking' }
+    | { status: 'verified' }
+    | { status: 'unregistered' }
+    | { status: 'error'; message: string }
+  >({ status: 'checking' })
+
+  useEffect(() => {
+    let cancelled = false
+    async function check() {
+      if (!group.subscriptionId) {
+        if (!cancelled) setRegistryStatus({ status: 'unregistered' })
+        return
+      }
+      try {
+        const { resolveMapping } = await import(
+          '@/lib/stellar/registrar-service'
+        )
+        const resolved = await resolveMapping(group.subscriptionId)
+        const match =
+          (resolved ?? '').trim().toUpperCase() ===
+          (membershipContractId ?? '').toUpperCase()
+        if (!cancelled)
+          setRegistryStatus({ status: match ? 'verified' : 'unregistered' })
+      } catch (_error) {
+        if (!cancelled)
+          setRegistryStatus({
+            status: 'error',
+            message: 'Unable to query registry'
+          })
+      }
+    }
+    check()
+    return () => {
+      cancelled = true
+    }
+  }, [group.subscriptionId, membershipContractId])
   const contractPriceLabel = useMemo(() => {
     if (!contractConfig?.price) return 'Loading price…'
     try {
@@ -393,6 +433,50 @@ export function GroupAboutSection() {
                 <ExternalLink className='h-3 w-3' />
               </a>
             ) : null}
+          </div>
+        </div>
+        <div className='rounded-lg border border-border bg-card p-5'>
+          <div className='space-y-3'>
+            <p className='text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
+              On-chain registry
+            </p>
+            <div className='text-sm text-foreground'>
+              <div className='break-all font-mono'>
+                Course ID: {group.subscriptionId ?? 'Not assigned'}
+              </div>
+              <div>
+                Status:{' '}
+                {registryStatus.status === 'checking' && (
+                  <span className='text-muted-foreground'>Checking…</span>
+                )}
+                {registryStatus.status === 'verified' && (
+                  <span className='text-emerald-600 dark:text-emerald-400'>
+                    Verified
+                  </span>
+                )}
+                {registryStatus.status === 'unregistered' && (
+                  <span className='text-amber-600 dark:text-amber-400'>
+                    Not registered
+                  </span>
+                )}
+                {registryStatus.status === 'error' && (
+                  <span className='text-destructive'>
+                    {registryStatus.message}
+                  </span>
+                )}
+              </div>
+            </div>
+            <a
+              href={
+                getContractUrl(getRegistrarContractAddress() || '') ?? undefined
+              }
+              target='_blank'
+              rel='noopener noreferrer'
+              className='inline-flex items-center gap-1 text-xs font-medium text-primary underline decoration-dotted underline-offset-4'
+            >
+              Inspect Registrar
+              <ExternalLink className='h-3 w-3' />
+            </a>
           </div>
         </div>
       </div>

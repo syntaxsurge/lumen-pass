@@ -31,6 +31,10 @@ export function getRegistrarContractAddress(): string {
   return process.env.NEXT_PUBLIC_REGISTRAR_CONTRACT_ID?.trim() ?? ''
 }
 
+export function getRegistrarOwnerAddress(): string {
+  return process.env.NEXT_PUBLIC_REGISTRAR_OWNER_ADDRESS?.trim() ?? ''
+}
+
 export function getSplitRouterContractAddress(): string {
   return process.env.NEXT_PUBLIC_SPLIT_ROUTER_CONTRACT_ID?.trim() ?? ''
 }
