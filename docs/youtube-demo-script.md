@@ -37,7 +37,7 @@ This outline covers a 7–8 minute walkthrough of LumenPass on the Stellar testn
      - Due date: `2025-12-12`
      - Notes: `Scope: pilot deliverables and async support.`
      - Line items:
-       - 1) Description: `Pilot deliverables (flat)` — Qty: `1` — Unit price (XLM): `80`
+       - 1. Description: `Pilot deliverables (flat)` — Qty: `1` — Unit price (XLM): `80`
 5. **On-screen:** Open `Recurring Payouts`, add two collaborators with shares, and save.
    - **Voice-over 7:** “Payout schedules use the split router so one transaction pushes XLM to every collaborator with the exact split.”
    - Field inputs — type exactly:
@@ -119,4 +119,3 @@ This outline covers a 7–8 minute walkthrough of LumenPass on the Stellar testn
 ## Segment 14 – Thank You
 
 - **Voice-over 19:** “Thanks for watching the LumenPass demo. Visit lumenpass.app to launch your own Stellar-native community.”
-
