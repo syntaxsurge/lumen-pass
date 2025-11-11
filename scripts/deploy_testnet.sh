@@ -108,7 +108,17 @@ publish_deploy() {
   local WASM_PATH=$1
   local NAME=$2
   local BINVER=$3
+  # Allow reset runs to force unique contract names to guarantee fresh IDs
   local CONTRACT_NAME="${NAME}-main"
+  if [ "${RESET:-}" = "true" ]; then
+    local TS_SUFFIX
+    TS_SUFFIX=$(date +%Y%m%d%H%M%S)
+    CONTRACT_NAME="${NAME}-main-${TS_SUFFIX}"
+    echo "   ↳ RESET mode: using contract name ${CONTRACT_NAME}"
+  elif [ -n "${SUFFIX:-}" ]; then
+    CONTRACT_NAME="${NAME}-main-${SUFFIX}"
+    echo "   ↳ SUFFIX set: using contract name ${CONTRACT_NAME}"
+  fi
   echo "==> Publishing $NAME (binver=$BINVER)" >&2
   if ! stellar registry publish --wasm "$WASM_PATH" --wasm-name "$NAME" --binver "$BINVER" --source-account "$ACCOUNT_NAME" --network "$NETWORK" >/dev/null 2>&1; then
     echo "   ↳ publish failed (likely already published); continuing" >&2

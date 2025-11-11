@@ -52,8 +52,22 @@ export const createListing = mutation({
       .withIndex('by_userId', q => q.eq('userId', owner._id))
       .unique()
     const LIST_COOLDOWN_MS = 60 * 1000
-    if (stats && stats.lastListAt && now - stats.lastListAt < LIST_COOLDOWN_MS) {
+    const TRANSFER_COOLDOWN_MS = 24 * 60 * 60 * 1000
+    if (
+      stats &&
+      stats.lastListAt &&
+      now - stats.lastListAt < LIST_COOLDOWN_MS
+    ) {
       throw new Error('Please wait before creating another listing.')
+    }
+    if (
+      stats &&
+      stats.lastBuyAt &&
+      now - stats.lastBuyAt < TRANSFER_COOLDOWN_MS
+    ) {
+      throw new Error(
+        'Transfer cooldown active. Please wait 24 hours after purchasing before listing.'
+      )
     }
     const existing = await ctx.db
       .query('marketplaceListings')
@@ -114,7 +128,11 @@ export const cancelListing = mutation({
       .withIndex('by_userId', q => q.eq('userId', owner._id))
       .unique()
     const CANCEL_COOLDOWN_MS = 30 * 1000
-    if (stats && stats.lastCancelAt && now - stats.lastCancelAt < CANCEL_COOLDOWN_MS) {
+    if (
+      stats &&
+      stats.lastCancelAt &&
+      now - stats.lastCancelAt < CANCEL_COOLDOWN_MS
+    ) {
       throw new Error('Please wait before canceling again.')
     }
     await ctx.db.patch(existing._id, {
@@ -138,7 +156,11 @@ export const cancelListing = mutation({
 })
 
 export const recordTx = mutation({
-  args: { listingId: v.string(), txHash: v.string() },
+  args: {
+    listingId: v.string(),
+    txHash: v.string(),
+    buyerAddress: v.optional(v.string())
+  },
   handler: async (ctx, args) => {
     const existing = await ctx.db
       .query('marketplaceListings')
@@ -151,13 +173,23 @@ export const recordTx = mutation({
       active: false,
       updatedAt: now
     })
-    // anti-abuse: buy daily limits
-    const BUY_DAILY_LIMIT = 50
-    const buyerDayKey = new Date(now).toISOString().slice(0, 10)
-    const buyer = await ctx.db
-      .query('users')
-      .withIndex('by_wallet', q => q.eq('walletAddress', args.txHash.slice(0,0)))
-      .first()
-    // Note: buyer resolution from tx is not tracked here; enforce limits via UI.
+    if (!args.buyerAddress) return
+    const buyer = await requireUserByWallet(ctx, args.buyerAddress)
+    const stats = await ctx.db
+      .query('marketplaceUserStats')
+      .withIndex('by_userId', q => q.eq('userId', buyer._id))
+      .unique()
+    if (stats) {
+      await ctx.db.patch(stats._id, { lastBuyAt: now })
+    } else {
+      await ctx.db.insert('marketplaceUserStats', {
+        userId: buyer._id,
+        lastListAt: undefined,
+        lastCancelAt: undefined,
+        lastBuyAt: now,
+        dailyBuyCount: 1,
+        buyDayKey: new Date(now).toISOString().slice(0, 10)
+      })
+    }
   }
 })
