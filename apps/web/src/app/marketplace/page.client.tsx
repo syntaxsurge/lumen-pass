@@ -849,7 +849,7 @@ function ListDialog({
   return (
     <Dialog
       open={open}
-      onOpenChange={value => {
+      onOpenChange={(value: boolean) => {
         if (!value) {
           setForm({ id: '', price: '' })
         }
