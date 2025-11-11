@@ -202,6 +202,16 @@ export default function MarketplacePage() {
       transferCooldownRemaining === 0
   )
 
+  const listDisabledReason = useMemo(() => {
+    if (!address) return 'Connect your wallet to start listing'
+    if (!client) return 'Wallet not ready. Please reconnect'
+    if (transferCooldownRemaining > 0)
+      return `Transfer cooldown active. ${formatCooldown(transferCooldownRemaining) ?? ''}`
+    if (listCooldownRemaining > 0)
+      return `Please wait before creating another listing. ${formatCooldown(listCooldownRemaining) ?? ''}`
+    return ''
+  }, [address, client, listCooldownRemaining, transferCooldownRemaining])
+
   const listContract = getMarketplaceContractAddress()
 
   const onCreate = async (values: ListingFormState) => {
@@ -335,6 +345,7 @@ export default function MarketplacePage() {
             }
             setListDialogOpen(true)
           }}
+          disabledReason={listDisabledReason}
         />
 
         <div className='flex flex-col gap-8 lg:flex-row'>
@@ -449,11 +460,13 @@ export default function MarketplacePage() {
 function Hero({
   listingCount,
   canList,
-  onList
+  onList,
+  disabledReason
 }: {
   listingCount: number
   canList: boolean
   onList: () => void
+  disabledReason?: string
 }) {
   return (
     <div className='relative overflow-hidden rounded-2xl border border-border/30 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-10 py-16 text-white shadow-2xl md:px-14'>
@@ -487,10 +500,8 @@ function Hero({
           >
             List Your Membership
           </Button>
-          {!canList && (
-            <p className='text-sm text-slate-300'>
-              Connect your wallet to start listing
-            </p>
+          {!canList && disabledReason && (
+            <p className='text-sm text-slate-300'>{disabledReason}</p>
           )}
           <div className='rounded-lg bg-white/10 px-4 py-2 text-left text-slate-200/90'>
             <p className='text-xs font-semibold uppercase tracking-wider text-white/70'>
