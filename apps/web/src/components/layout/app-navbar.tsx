@@ -1,13 +1,23 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
-import { GroupSwitcher } from './group-switcher'
 import { HeaderUtilityMenu } from './header-utility-menu'
 import { ThemeToggle } from './theme-toggle'
 import { WalletMenu } from './wallet-menu'
+
+const DynamicGroupSwitcher = dynamic(
+  () => import('./group-switcher').then(m => m.GroupSwitcher),
+  {
+    ssr: false,
+    loading: () => (
+      <div className='h-10 w-40 rounded-md border border-border/40 bg-card/60' />
+    )
+  }
+)
 
 export function AppNavbar() {
   const pathname = usePathname()
@@ -48,7 +58,8 @@ export function AppNavbar() {
 
           <div className='h-8 w-px bg-gradient-to-b from-transparent via-border to-transparent' />
 
-          <GroupSwitcher />
+          {/** Avoid SSR rendering of GroupSwitcher because it uses Convex hooks */}
+          <DynamicGroupSwitcher />
 
           <nav className='flex items-center gap-1'>
             <Link

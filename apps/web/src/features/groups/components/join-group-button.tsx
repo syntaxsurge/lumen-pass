@@ -146,11 +146,16 @@ export function JoinGroupButton() {
         })
       }
 
+      const defaultExpiry =
+        group.billingCadence === 'monthly'
+          ? Date.now() + 30 * 24 * 60 * 60 * 1000
+          : undefined
+
       await joinGroup({
         groupId: group._id,
         memberAddress: address,
         hasActivePass: false,
-        passExpiresAt: undefined,
+        passExpiresAt: defaultExpiry,
         txHash: txHash ?? undefined
       })
       toast.success('Membership activated!')

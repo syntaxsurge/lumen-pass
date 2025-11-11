@@ -18,6 +18,9 @@ export const metadata: Metadata = {
   description: 'Stellar-native memberships, payments, and payouts.'
 }
 
+// Avoid static prerender on routes that include Convex hooks in client trees.
+export const dynamic = 'force-dynamic'
+
 export default function RootLayout({
   children
 }: Readonly<{
