@@ -26,8 +26,7 @@ import { Button } from '@/components/ui/button'
 import { api } from '@/convex/_generated/api'
 import { useWalletAccount } from '@/hooks/use-wallet-account'
 
-const rawDemoVideoUrl =
-  process.env.NEXT_PUBLIC_DEMO_VIDEO_URL || process.env.DEMO_VIDEO_URL || ''
+const rawDemoVideoUrl = process.env.NEXT_PUBLIC_DEMO_VIDEO_URL || ''
 
 const stats = [
   {
