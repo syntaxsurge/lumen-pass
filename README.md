@@ -1,5 +1,8 @@
 # LumenPass · Soroban Membership + Marketplace Stack
 
+**VIDEO DEMO:** https://youtu.be/L5PCfJ3qTFQ
+**LIVE URL:** https://lumen-pass-web.vercel.app/demo-video
+
 - **Memberships** — `contracts/lumen-pass` handles paid subscriptions using the native asset contract (SAC) and routes fees to the platform treasury.
 - **Invoices** — `contracts/invoice-registry` issues/marks invoices directly on Soroban.
 - **Marketplace** — `contracts/marketplace` lists/buys memberships with built-in platform fees.

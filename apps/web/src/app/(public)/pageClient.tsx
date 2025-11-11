@@ -26,6 +26,9 @@ import { Button } from '@/components/ui/button'
 import { api } from '@/convex/_generated/api'
 import { useWalletAccount } from '@/hooks/use-wallet-account'
 
+const rawDemoVideoUrl =
+  process.env.NEXT_PUBLIC_DEMO_VIDEO_URL || process.env.DEMO_VIDEO_URL || ''
+
 const stats = [
   {
     icon: Wallet,
@@ -147,6 +150,35 @@ const heroHighlights = [
   'Recurring payouts without spreadsheets',
   'Memberships, classrooms, and storefronts together'
 ]
+
+const demoVideoEmbedUrl = buildEmbedUrl(rawDemoVideoUrl)
+
+function buildEmbedUrl(input: string): string {
+  if (!input) return ''
+  try {
+    const parsed = new URL(input)
+    const host = parsed.hostname.replace(/^www\./, '')
+    let videoId = ''
+    if (host === 'youtu.be') {
+      videoId = parsed.pathname.replace('/', '')
+    } else if (host.includes('youtube.com')) {
+      videoId =
+        parsed.searchParams.get('v') ??
+        parsed.pathname.split('/').filter(Boolean).pop() ??
+        ''
+    }
+    if (!videoId) {
+      return input
+    }
+    const params = new URLSearchParams({
+      rel: '0',
+      modestbranding: '1'
+    })
+    return `https://www.youtube.com/embed/${videoId}?${params.toString()}`
+  } catch {
+    return input
+  }
+}
 
 export default function HomePageClient() {
   const { address } = useWalletAccount()
@@ -276,9 +308,20 @@ export default function HomePageClient() {
                     </div>
                     <div className='mt-4'>
                       <AspectRatio ratio={16 / 9}>
-                        <div className='flex h-full w-full items-center justify-center rounded-xl border border-accent/20 bg-muted'>
-                          <Play className='h-10 w-10 text-accent' />
-                        </div>
+                        {demoVideoEmbedUrl ? (
+                          <iframe
+                            title='LumenPass demo video'
+                            src={demoVideoEmbedUrl}
+                            className='h-full w-full rounded-xl border border-accent/20 bg-black'
+                            allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture'
+                            allowFullScreen
+                            loading='lazy'
+                          />
+                        ) : (
+                          <div className='flex h-full w-full items-center justify-center rounded-xl border border-accent/20 bg-muted'>
+                            <Play className='h-10 w-10 text-accent' />
+                          </div>
+                        )}
                       </AspectRatio>
                     </div>
                   </div>

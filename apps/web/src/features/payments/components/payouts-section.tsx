@@ -55,7 +55,10 @@ export function PayoutsSection() {
   const [busy, setBusy] = useState(false)
 
   const form = useForm<ScheduleForm>({
-    defaultValues: { name: '', recipients: [{ address: '', sharePercent: 100 }] }
+    defaultValues: {
+      name: '',
+      recipients: [{ address: '', sharePercent: 100 }]
+    }
   })
   const recipients = useFieldArray({
     control: form.control,
