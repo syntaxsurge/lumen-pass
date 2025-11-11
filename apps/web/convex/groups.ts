@@ -33,6 +33,29 @@ type SanitizedAdministrator = {
   walletAddress: string
 }
 
+async function touchMarketplaceBuyStat(
+  ctx: MutationCtx,
+  userId: Id<'users'>,
+  timestamp: number
+) {
+  const stats = await ctx.db
+    .query('marketplaceUserStats')
+    .withIndex('by_userId', q => q.eq('userId', userId))
+    .unique()
+  if (stats) {
+    await ctx.db.patch(stats._id, { lastBuyAt: timestamp })
+    return
+  }
+  await ctx.db.insert('marketplaceUserStats', {
+    userId,
+    lastBuyAt: timestamp,
+    lastListAt: undefined,
+    lastCancelAt: undefined,
+    dailyBuyCount: 0,
+    buyDayKey: undefined
+  })
+}
+
 async function sanitizeAdministrators(
   ctx: MutationCtx,
   owner: Doc<'users'>,
@@ -1023,6 +1046,7 @@ export const join = mutation({
   ) => {
     const member = await requireUserByWallet(ctx, memberAddress)
     const group = await ctx.db.get(groupId)
+    const now = Date.now()
 
     if (!group) {
       throw new Error('Group not found.')
@@ -1052,7 +1076,7 @@ export const join = mutation({
 
       await ctx.db.patch(existing._id, {
         status: 'active',
-        joinedAt: Date.now(),
+        joinedAt: now,
         leftAt: undefined,
         passExpiresAt: passExpiresAt ?? existing.passExpiresAt
       })
@@ -1060,6 +1084,8 @@ export const join = mutation({
       await ctx.db.patch(groupId, {
         memberNumber: (group.memberNumber ?? 0) + 1
       })
+
+      await touchMarketplaceBuyStat(ctx, member._id, now)
 
       return { status: 'joined' as const }
     }
@@ -1072,13 +1098,15 @@ export const join = mutation({
       userId: member._id,
       groupId,
       status: 'active',
-      joinedAt: Date.now(),
+      joinedAt: now,
       passExpiresAt
     })
 
     await ctx.db.patch(groupId, {
       memberNumber: (group.memberNumber ?? 0) + 1
     })
+
+    await touchMarketplaceBuyStat(ctx, member._id, now)
 
     return { status: 'joined' as const }
   }

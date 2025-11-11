@@ -30,6 +30,7 @@ import {
 import { Separator } from '@/components/ui/separator'
 import { api } from '@/convex/_generated/api'
 import type { Doc } from '@/convex/_generated/dataModel'
+import { useStellarWallet } from '@/hooks/use-stellar-wallet'
 import { useWalletAccount } from '@/hooks/use-wallet-account'
 import {
   SETTLEMENT_TOKEN_SYMBOL,
@@ -125,10 +126,33 @@ export default function MarketplacePage() {
   const [listDialogOpen, setListDialogOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const wallet = (
-    require('@/hooks/use-stellar-wallet') as any
-  ).useStellarWallet()
-  const client = useMarketplaceClient(wallet.publicKey, wallet.signTransaction)
+  const wallet = useStellarWallet()
+  const normalizedSigner = useMemo<
+    ((xdr: string) => Promise<string>) | undefined
+  >(() => {
+    if (!wallet.signTransaction) return undefined
+    return async (xdr: string) => {
+      const raw = await wallet.signTransaction!(xdr)
+      if (typeof raw === 'string') return raw
+      const obj = raw as any
+      const candidate =
+        obj?.signedTxXdr ??
+        obj?.signedXDR ??
+        obj?.signed_xdr ??
+        obj?.envelope_xdr ??
+        obj?.signedTx ??
+        obj?.tx ??
+        obj?.xdr
+      if (typeof candidate !== 'string')
+        throw new Error('Wallet returned no signed XDR')
+      return candidate
+    }
+  }, [wallet.signTransaction])
+
+  const client = useMarketplaceClient(
+    wallet.publicKey ?? undefined,
+    normalizedSigner
+  )
 
   const decoratedListings = useMemo<EnrichedListing[]>(
     () => (listings ?? []).map(decorateListing),
@@ -181,18 +205,24 @@ export default function MarketplacePage() {
   const listContract = getMarketplaceContractAddress()
 
   const onCreate = async (values: ListingFormState) => {
-    if (!address) return toast.error('Connect your wallet to list')
-    if (!client) return toast.error('Wallet not ready')
+    if (!address) {
+      toast.error('Connect your wallet to list')
+      return
+    }
+    if (!client) {
+      toast.error('Wallet not ready')
+      return
+    }
     if (!values.id || !values.price) {
-      return toast.error('Provide a listing id and price')
+      toast.error('Provide a listing id and price')
+      return
     }
     if (stats?.lastListAt && Date.now() - stats.lastListAt < LIST_COOLDOWN_MS) {
       const secs = Math.ceil(
         (LIST_COOLDOWN_MS - (Date.now() - stats.lastListAt)) / 1000
       )
-      return toast.error(
-        `Please wait ${secs}s before creating another listing.`
-      )
+      toast.error(`Please wait ${secs}s before creating another listing.`)
+      return
     }
     if (
       stats?.lastBuyAt &&
@@ -201,9 +231,10 @@ export default function MarketplacePage() {
       const hours = Math.ceil(
         (TRANSFER_COOLDOWN_MS - (Date.now() - stats.lastBuyAt)) / 1000 / 60 / 60
       )
-      return toast.error(
+      toast.error(
         `Transfer cooldown active. Try again in ~${hours}h after purchasing.`
       )
+      return
     }
     setIsSubmitting(true)
     const price = parseSettlementTokenAmount(values.price)

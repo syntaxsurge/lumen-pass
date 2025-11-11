@@ -17,11 +17,8 @@ import {
 import { api } from '@/convex/_generated/api'
 import { useStellarWallet } from '@/hooks/use-stellar-wallet'
 import { useWalletAccount } from '@/hooks/use-wallet-account'
-import {
-  subscribe,
-  isMember as stellarIsMember,
-  getExpiryMs
-} from '@/lib/stellar/lumen-pass-service'
+import { parseSettlementTokenAmount } from '@/lib/settlement-token'
+import { submitNativePaymentViaWallet } from '@/lib/stellar/paylink-service'
 
 import { useGroupContext } from '../context/group-context'
 import { formatGroupPriceLabel } from '../utils/price'
@@ -109,7 +106,7 @@ function LeaveGroupButton() {
 }
 
 export function JoinGroupButton() {
-  const { group, isOwner, isMember } = useGroupContext()
+  const { group, isOwner, isMember, owner } = useGroupContext()
   const { address, isConnected, connect } = useWalletAccount()
   const stellar = useStellarWallet()
   const joinGroup = useMutation(api.groups.join)
@@ -132,26 +129,28 @@ export function JoinGroupButton() {
     }
     setIsWorking(true)
     try {
-      const already = await stellarIsMember(address)
+      const requiresPayment =
+        (group.price ?? 0) > 0 && group.billingCadence === 'monthly'
       let txHash: string | null = null
-      let expiryMs: number | null = null
-
-      if (!already) {
-        const receipt = await subscribe({
+      if (requiresPayment) {
+        const dest = owner?.walletAddress?.trim()
+        if (!dest) throw new Error('Group owner wallet not available.')
+        const amount = parseSettlementTokenAmount(String(group.price ?? 0))
+        const memo = `GROUP-${group._id}`.slice(0, 28)
+        txHash = await submitNativePaymentViaWallet({
           publicKey: address,
-          signTransaction: stellar.signTransaction as any
+          destination: dest,
+          amount,
+          memo,
+          signTransaction: stellar.signTransaction
         })
-        txHash = receipt.txHash
-        expiryMs = receipt.expiryMs
-      } else {
-        expiryMs = await getExpiryMs(address)
       }
 
       await joinGroup({
         groupId: group._id,
         memberAddress: address,
-        hasActivePass: true,
-        passExpiresAt: expiryMs ?? undefined,
+        hasActivePass: false,
+        passExpiresAt: undefined,
         txHash: txHash ?? undefined
       })
       toast.success('Membership activated!')
@@ -168,7 +167,10 @@ export function JoinGroupButton() {
     group._id,
     isConnected,
     joinGroup,
-    stellar.signTransaction
+    stellar.signTransaction,
+    group.billingCadence,
+    group.price,
+    owner?.walletAddress
   ])
 
   if (isOwner) return null
