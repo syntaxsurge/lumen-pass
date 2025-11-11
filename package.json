@@ -7,7 +7,7 @@
     "dev": "npm run dev --workspace=@lumen-pass/web",
     "contracts:watch": "stellar scaffold watch --build-clients",
     "start": "npm run start --workspace=@lumen-pass/web",
-    "build": "stellar scaffold build && npm run build --workspace=@lumen-pass/web",
+    "build": "node ./scripts/ci-build.cjs",
     "lint": "npm run lint --workspace=@lumen-pass/web",
     "install:contracts": "npm install --workspace=packages && npm run build --workspace=packages"
   },
