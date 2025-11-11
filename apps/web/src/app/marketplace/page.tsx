@@ -58,6 +58,7 @@ export default function MarketplacePage() {
   const createListing = useMutation(api.marketplace.createListing)
   const cancelListing = useMutation(api.marketplace.cancelListing)
   const recordTx = useMutation(api.marketplace.recordTx)
+  const stats = useQuery(api.marketplace.getUserStats, address ? { ownerAddress: address } : 'skip')
 
   const [open, setOpen] = useState(false)
   const form = useForm<ListingForm>({ defaultValues: { id: '', price: '' } })
@@ -69,9 +70,15 @@ export default function MarketplacePage() {
   ).useStellarWallet()
   const client = useMarketplaceClient(wallet.publicKey, wallet.signTransaction)
 
+  const LIST_COOLDOWN_MS = 60_000
+  const CANCEL_COOLDOWN_MS = 30_000
   const onCreate = async (values: ListingForm) => {
     if (!address) return toast.error('Connect your wallet to list')
     if (!client) return toast.error('Wallet not ready')
+    if (stats?.lastListAt && Date.now() - stats.lastListAt < LIST_COOLDOWN_MS) {
+      const secs = Math.ceil((LIST_COOLDOWN_MS - (Date.now() - stats.lastListAt)) / 1000)
+      return toast.error(`Please wait ${secs}s before creating another listing.`)
+    }
     const price = parseSettlementTokenAmount(values.price)
     const id = BigInt(values.id)
     try {
@@ -114,6 +121,10 @@ export default function MarketplacePage() {
   const onCancel = async (l: Doc<'marketplaceListings'>) => {
     if (!address) return toast.error('Connect your wallet to cancel')
     if (!client) return toast.error('Wallet not ready')
+    if (stats?.lastCancelAt && Date.now() - stats.lastCancelAt < CANCEL_COOLDOWN_MS) {
+      const secs = Math.ceil((CANCEL_COOLDOWN_MS - (Date.now() - stats.lastCancelAt)) / 1000)
+      return toast.error(`Please wait ${secs}s before canceling again.`)
+    }
     try {
       const tx = await client.cancel({
         id: BigInt(l.listingId),
@@ -178,7 +189,9 @@ export default function MarketplacePage() {
             >
               Cancel
             </Button>
-            <Button type='submit'>Create</Button>
+            <Button type='submit' disabled={Boolean(stats?.lastListAt && Date.now() - stats.lastListAt < LIST_COOLDOWN_MS)}>
+              Create
+            </Button>
           </div>
         </form>
       )}
@@ -215,6 +228,7 @@ export default function MarketplacePage() {
                     size='sm'
                     className='gap-2'
                     onClick={() => onCancel(l)}
+                    disabled={Boolean(stats?.lastCancelAt && Date.now() - stats.lastCancelAt < CANCEL_COOLDOWN_MS)}
                   >
                     <XCircle className='h-4 w-4' /> Cancel
                   </Button>

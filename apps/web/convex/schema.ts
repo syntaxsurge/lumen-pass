@@ -161,6 +161,14 @@ export default defineSchema({
   })
     .index('by_listingId', ['listingId'])
     .index('by_sellerId', ['sellerId']),
+  marketplaceUserStats: defineTable({
+    userId: v.id('users'),
+    lastListAt: v.optional(v.number()),
+    lastCancelAt: v.optional(v.number()),
+    lastBuyAt: v.optional(v.number()),
+    dailyBuyCount: v.optional(v.number()),
+    buyDayKey: v.optional(v.string())
+  }).index('by_userId', ['userId']),
   savingsGoals: defineTable({
     ownerId: v.id('users'),
     name: v.string(),
