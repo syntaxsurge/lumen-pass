@@ -6,6 +6,7 @@ import {
   STELLAR_RPC_URL
 } from '@/lib/stellar/config'
 import type { StellarSigner } from '@/lib/stellar/lumen-pass-service'
+import { normalizeSigner } from '@/lib/stellar/wallet-signature'
 
 type ClientOptions = {
   publicKey?: string
@@ -29,7 +30,7 @@ function createClient(options?: ClientOptions) {
     rpcUrl: STELLAR_RPC_URL,
     networkPassphrase: STELLAR_NETWORK_PASSPHRASE,
     publicKey: options?.publicKey,
-    signTransaction: options?.signTransaction as any
+    signTransaction: normalizeSigner(options?.signTransaction)
   })
 }
 

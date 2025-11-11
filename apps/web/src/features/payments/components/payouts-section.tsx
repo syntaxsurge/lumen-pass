@@ -34,11 +34,11 @@ import { SETTLEMENT_TOKEN_SYMBOL } from '@/lib/config'
 import { parseSettlementTokenAmount } from '@/lib/settlement-token'
 import { executeSplit } from '@/lib/stellar/split-router-service'
 
-type Recipient = { address: string; shareBps: number; label?: string }
+type RecipientInput = { address: string; sharePercent: number; label?: string }
 
 type ScheduleForm = {
   name: string
-  recipients: Recipient[]
+  recipients: RecipientInput[]
 }
 
 export function PayoutsSection() {
@@ -55,7 +55,7 @@ export function PayoutsSection() {
   const [busy, setBusy] = useState(false)
 
   const form = useForm<ScheduleForm>({
-    defaultValues: { name: '', recipients: [{ address: '', shareBps: 10000 }] }
+    defaultValues: { name: '', recipients: [{ address: '', sharePercent: 100 }] }
   })
   const recipients = useFieldArray({
     control: form.control,
@@ -66,14 +66,18 @@ export function PayoutsSection() {
     if (!address) return toast.error('Connect your wallet first.')
     try {
       setBusy(true)
+      const recipientPayload = values.recipients.map(r => ({
+        address: r.address,
+        shareBps: Math.round(Number(r.sharePercent ?? 0) * 100)
+      }))
       await createSchedule({
         ownerAddress: address,
         name: values.name,
-        recipients: values.recipients
+        recipients: recipientPayload
       })
       toast.success('Schedule created')
       setOpenCreate(false)
-      form.reset({ name: '', recipients: [{ address: '', shareBps: 10000 }] })
+      form.reset({ name: '', recipients: [{ address: '', sharePercent: 100 }] })
     } catch (e) {
       console.error(e)
       toast.error(e instanceof Error ? e.message : 'Failed to create schedule')
@@ -140,7 +144,7 @@ export function PayoutsSection() {
               <DialogTitle>Create payout schedule</DialogTitle>
               <DialogDescription>
                 Addresses must be valid Stellar public keys. Shares must total
-                10000 bps.
+                100%.
               </DialogDescription>
             </DialogHeader>
             <Form {...form}>
@@ -181,17 +185,17 @@ export function PayoutsSection() {
                       />
                       <FormField
                         control={form.control}
-                        name={`recipients.${i}.shareBps`}
-                        rules={{ required: true, min: 0, max: 10000 }}
+                        name={`recipients.${i}.sharePercent`}
+                        rules={{ required: true, min: 0, max: 100 }}
                         render={({ field }) => (
                           <FormItem className='col-span-3'>
-                            <FormLabel>Share (bps)</FormLabel>
+                            <FormLabel>Share (%)</FormLabel>
                             <FormControl>
                               <Input
                                 type='number'
                                 min={0}
-                                max={10000}
-                                step={1}
+                                max={100}
+                                step={0.01}
                                 {...field}
                               />
                             </FormControl>
@@ -217,7 +221,7 @@ export function PayoutsSection() {
                     variant='outline'
                     size='sm'
                     onClick={() =>
-                      recipients.append({ address: '', shareBps: 0 })
+                      recipients.append({ address: '', sharePercent: 0 })
                     }
                     className='gap-2'
                   >
