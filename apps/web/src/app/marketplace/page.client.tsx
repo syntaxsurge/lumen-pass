@@ -545,8 +545,8 @@ function FilterControls({
         </h3>
         <Select
           value={filters.expiry}
-          onValueChange={value =>
-            onChange({ ...filters, expiry: value as ExpiryFilter })
+          onValueChange={(value: ExpiryFilter) =>
+            onChange({ ...filters, expiry: value })
           }
         >
           <SelectTrigger id='marketplace-expiry' className='h-11'>
